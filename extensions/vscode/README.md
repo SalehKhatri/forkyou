@@ -3,6 +3,11 @@
 Track the time you actually spend coding, straight from your editor. See where it goes on your
 dashboard at [forkyou.dev](https://forkyou.dev), and climb the leaderboard.
 
+> [!NOTE]
+> **In development.** This is the unreleased 2.0 rewrite. Sign-in works; session tracking,
+> offline sync and presence are being added and will be in place before 2.0.0 is published. Until
+> then, "What's collected" describes the finished extension.
+
 ## Getting started
 
 1. Sign in at [forkyou.dev](https://forkyou.dev) with GitHub.

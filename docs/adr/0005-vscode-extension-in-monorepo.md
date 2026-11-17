@@ -32,8 +32,9 @@ file, so 2.0 is a rewrite.
 
 ## Consequences
 
-- 2.0 must not be published until the 2.0 API is reachable at `forkyou.dev`: auto-update moves
-  every 1.x user at once.
+- Auto-update moves every 1.x user at once, so 2.0 is published only when both are true: the 2.0
+  API is reachable at `forkyou.dev`, and the extension tracks sessions, queues them offline and
+  sends presence. Publishing sign-in alone would silently stop recording users' time.
 - Extensions are part of `pnpm check`, so a contract change that breaks the extension fails CI.
 - The bundle includes Zod (about 450 KB minified). Acceptable for now; `zod/mini` is the option if
   size matters.

@@ -1,10 +1,9 @@
 import * as vscode from "vscode";
-import { ApiClient, type ApiFailure } from "./api.js";
+import { ApiClient } from "./api.js";
 import { isApiKeyFormat, resolveApiUrl, webUrl } from "./config.js";
+import { Credentials, keyCheckMessage } from "./credentials.js";
 import { removeLegacyKey } from "./legacy.js";
 
-/** Key in `context.secrets` (the OS keychain), separate from 1.x's plaintext `globalState` key. */
-const SECRET_API_KEY = "apiKey";
 /** Set once we've suggested adding a key, so a fresh install doesn't nag on every start. */
 const SETUP_PROMPTED = "forkyou.setupPrompted";
 
@@ -21,6 +20,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const openWeb = (path: string) =>
     vscode.env.openExternal(vscode.Uri.parse(`${webUrl(apiUrl())}${path}`));
   const api = new ApiClient({ baseUrl: apiUrl });
+  const credentials = new Credentials(context.secrets);
 
   async function configureApiKey(): Promise<void> {
     const input = await vscode.window.showInputBox({
@@ -35,19 +35,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     if (input === undefined) return;
     const key = input.trim();
 
-    const result = await vscode.window.withProgress(
+    const { result, saved } = await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: "ForkYou: checking your API key…" },
-      () => api.me(key),
+      () => credentials.signIn(key, (k) => api.me(k)),
     );
     if (result.ok) {
-      await context.secrets.store(SECRET_API_KEY, key);
+      if (!saved) {
+        log.info("Sign-in finished after the key was cleared or replaced; not saving it");
+        return;
+      }
       log.info(`Signed in as @${result.data.username}`);
       vscode.window.showInformationMessage(`ForkYou: signed in as @${result.data.username}.`);
       return;
     }
     log.warn(`API key check failed (${result.failure}): ${result.message}`);
     const choice = await vscode.window.showErrorMessage(
-      keyCheckError(result.failure, apiUrl()),
+      keyCheckMessage(result.failure, apiUrl()),
       "Try again",
       "Create a key",
     );
@@ -56,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   }
 
   async function clearApiKey(): Promise<void> {
-    await context.secrets.delete(SECRET_API_KEY);
+    await credentials.clear();
     log.info("API key cleared");
     vscode.window.showInformationMessage("ForkYou: API key cleared. Tracking is off.");
   }
@@ -72,10 +75,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   if (await removeLegacyKey(context.globalState)) {
     log.info("Removed a ForkYou 1.x API key; 2.0 needs a new one");
     void promptForKey("ForkYou 2.0 needs a new API key. Your old key no longer works.");
-  } else if (
-    !(await context.secrets.get(SECRET_API_KEY)) &&
-    !context.globalState.get(SETUP_PROMPTED)
-  ) {
+  } else if (!(await credentials.get()) && !context.globalState.get(SETUP_PROMPTED)) {
     void promptForKey("ForkYou: add your API key to start tracking your coding time.");
   }
 
@@ -88,16 +88,3 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 }
 
 export function deactivate(): void {}
-
-function keyCheckError(failure: ApiFailure, url: string): string {
-  switch (failure) {
-    case "unauthorized":
-      return "ForkYou: that API key isn't valid or has been revoked.";
-    case "outdated":
-      return "ForkYou: this version of the extension is no longer supported. Please update it.";
-    case "network":
-      return `ForkYou: couldn't reach ${url}. Check your connection or the forkyou.apiUrl setting.`;
-    default:
-      return "ForkYou: couldn't check your API key right now. Try again in a minute.";
-  }
-}
