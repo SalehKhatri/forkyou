@@ -14,6 +14,10 @@ A rewrite for ForkYou 2.0.
   the window loses focus or you switch language or project, and are split every 15 minutes.
 - Reading and other work in VS Code count too: scrolling, moving the cursor, switching editors,
   terminal commands, tasks, the debugger and notebook cell runs.
+- Sessions are saved to disk until they're uploaded, so nothing is lost when you're offline or
+  VS Code quits (1.x kept them in memory). Uploads retry with backoff when the server can't be
+  reached, and pause with a prompt if your key is revoked.
+- Signing out discards sessions that weren't uploaded, so another account can't upload them.
 - The project is the workspace folder of the file you're editing (1.x always used the first
   folder).
 
