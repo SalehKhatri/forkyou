@@ -46,7 +46,8 @@ export function makeApp(db: Deps["db"], overrides: Partial<Deps> = {}) {
     db,
     env: loadEnv({ NODE_ENV: "test", DATABASE_URL: "postgres://unused/test" }),
     github: fakeGithub(),
-    leaderboardCache: new TtlCache(0),
+    // No caching in tests: every request reads the database.
+    leaderboardCache: new TtlCache(0, { maxStaleMs: 0 }),
     now: () => NOW,
     ...overrides,
   };
