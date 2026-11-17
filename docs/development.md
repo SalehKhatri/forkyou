@@ -106,15 +106,32 @@ curl -H "Authorization: Bearer fy_…" http://localhost:4000/v1/me
 
 ## VS Code extension
 
+Run the dev build in a separate VS Code profile, so it doesn't touch your settings or clash with
+ForkYou from the Marketplace. Create the profile once, pointing the extension at your local server:
+
 ```bash
-pnpm --filter forkyou dev                              # rebuild on change (terminal 1)
-code --extensionDevelopmentPath="$PWD/extensions/vscode"  # VS Code with the dev build (terminal 2)
+mkdir -p ~/.forkyou-vscode-dev/user-data/User
+echo '{ "forkyou.apiUrl": "http://localhost:3000/api" }' > ~/.forkyou-vscode-dev/user-data/User/settings.json
 ```
 
-In that window, set `"forkyou.apiUrl": "http://localhost:3000/api"` in your **user** settings
-(it's ignored in workspace settings), then run **ForkYou: Configure API Key** with a key from
-`db:seed` or Settings. Logs are under **ForkYou: Show Log**. Reload the window
-(**Developer: Reload Window**) to pick up a rebuild.
+Then, with `pnpm dev` running:
+
+```bash
+pnpm --filter forkyou dev        # rebuild the extension on change (its own terminal)
+code --user-data-dir ~/.forkyou-vscode-dev/user-data \
+  --extensions-dir ~/.forkyou-vscode-dev/extensions \
+  --extensionDevelopmentPath="$PWD/extensions/vscode" --new-window
+```
+
+Run **ForkYou: Configure API Key** with a key from `db:seed` or Settings. Logs are under
+**ForkYou: Show Log**. Run **Developer: Reload Window** to pick up a rebuild.
+
+- Run `code` from a regular terminal. In VS Code's integrated terminal it hands the request to the
+  current window, which ignores `--user-data-dir`.
+- Keep the profile path short. VS Code puts a socket in it, and macOS limits socket paths to about
+  100 characters; with a longer path VS Code exits without an error.
+- `forkyou.apiUrl` only works in user settings (it's ignored in workspace settings), which is why
+  it goes in the profile.
 
 `pnpm --filter forkyou package` builds `extensions/vscode/forkyou-<version>.vsix`, which you can
 install with `code --install-extension <file>`.
