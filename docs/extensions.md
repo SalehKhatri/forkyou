@@ -3,6 +3,9 @@
 What every ForkYou editor plugin (VS Code, JetBrains, Neovim, …) must do. Shapes and limits come
 from `packages/shared`; the VS Code extension can import it directly.
 
+The VS Code extension in [`extensions/vscode`](../extensions/vscode) is the reference
+implementation ([ADR 0005](adr/0005-vscode-extension-in-monorepo.md)).
+
 ## Setup
 
 1. The user creates an API key at `/settings` and pastes it into the plugin.
@@ -35,6 +38,8 @@ A **session** is a continuous stretch of activity in one language and project.
 - On `410`: the plugin is too old. Tell the user to update.
 - On exit: close the current session and attempt one final sync (best effort).
 - Drop queued sessions older than 7 days; the server would reject them anyway.
+- If several editor windows can run the plugin at once and share storage, give each window its own
+  queue so concurrent writes can't lose sessions. Resending is safe; losing isn't.
 
 ## Presence
 

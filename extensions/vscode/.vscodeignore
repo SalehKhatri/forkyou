@@ -1,0 +1,8 @@
+# Everything except what the published extension needs: the bundle, icon, docs and license.
+**
+!dist/extension.js
+!media/icon.png
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE

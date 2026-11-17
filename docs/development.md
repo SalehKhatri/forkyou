@@ -104,6 +104,21 @@ curl -H "Authorization: Bearer fy_…" http://localhost:4000/v1/me
 **New environment variable**: add it to `apps/api/src/env.ts` (validated at startup), the right
 `.env.example`, and `docs/deployment.md`.
 
+## VS Code extension
+
+```bash
+pnpm --filter forkyou dev                              # rebuild on change (terminal 1)
+code --extensionDevelopmentPath="$PWD/extensions/vscode"  # VS Code with the dev build (terminal 2)
+```
+
+In that window, set `"forkyou.apiUrl": "http://localhost:3000/api"` in your **user** settings
+(it's ignored in workspace settings), then run **ForkYou: Configure API Key** with a key from
+`db:seed` or Settings. Logs are under **ForkYou: Show Log**. Reload the window
+(**Developer: Reload Window**) to pick up a rebuild.
+
+`pnpm --filter forkyou package` builds `extensions/vscode/forkyou-<version>.vsix`, which you can
+install with `code --install-extension <file>`.
+
 ## Troubleshooting
 
 | Symptom                                               | Fix                                                                         |
