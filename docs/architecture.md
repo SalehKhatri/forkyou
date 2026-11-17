@@ -56,12 +56,14 @@ sequenceDiagram
   E->>A: POST /v1/sessions {sessions[]} + Bearer key
   A->>A: validate schema (shared Zod)
   A->>D: key hash lookup → user
-  A->>D: BEGIN; pg_advisory_xact_lock(user)
+  A->>D: BEGIN
+  A->>D: pg_advisory_xact_lock(user)
   A->>D: find existing ids (duplicates)
   A->>A: reject future / too old / overlapping-in-batch
   A->>D: find stored sessions in the batch's time span
   A->>A: reject overlaps with stored sessions
-  A->>D: INSERT … ON CONFLICT (id) DO NOTHING; COMMIT
+  A->>D: INSERT … ON CONFLICT (id) DO NOTHING
+  A->>D: COMMIT
   A-->>E: {accepted, duplicates, rejected[{id, reason}]}
   E->>E: drop accepted + duplicates + rejected from the local queue
 ```
