@@ -1,0 +1,29 @@
+{
+  "name": "@forkyou/shared",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "description": "Wire contract (Zod schemas, types, constants) shared by the API, web app and editor extensions",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6"
+  },
+  "devDependencies": {
+    "vitest": "^5.1"
+  }
+}

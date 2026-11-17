@@ -1,0 +1,75 @@
+# ForkYou with Docker. Run from the repository root.
+#
+#   docker compose up --build        everything: web http://localhost:3000, api http://localhost:4000
+#   docker compose run --rm seed     demo users, plus an API key and a browser session cookie
+#   docker compose up -d postgres    only the database, for `pnpm dev` on the host
+#   docker compose down              stop (add -v to also delete the database volume)
+#
+# GitHub login is optional. To enable it, put GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in a
+# `.env` file next to this one (see docs/development.md). If a port is taken on your machine, set
+# POSTGRES_PORT, API_PORT or WEB_PORT there too.
+name: forkyou
+
+x-database-url: &database-url postgres://forkyou:forkyou@postgres:5432/forkyou_v2
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: forkyou
+      POSTGRES_PASSWORD: forkyou
+      POSTGRES_DB: forkyou_v2
+    # Bound to localhost only: the password above is public.
+    ports: ["127.0.0.1:${POSTGRES_PORT:-5432}:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forkyou -d forkyou_v2"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    environment:
+      # "development" because this stack is served over plain http://localhost. In production
+      # the session cookie is `__Host-` + Secure, which needs HTTPS (and the seed script refuses
+      # to run against production).
+      NODE_ENV: development
+      DATABASE_URL: *database-url
+      WEB_URL: http://localhost:${WEB_PORT:-3000}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_REDIRECT_URI: http://localhost:${WEB_PORT:-3000}/api/auth/github/callback
+    ports: ["127.0.0.1:${API_PORT:-4000}:4000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args: { API_URL: "http://api:4000" }
+    environment:
+      API_URL: http://api:4000
+    ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+  # One-off: `docker compose run --rm seed`. Waits for the API, so migrations have run.
+  seed:
+    profiles: [tools]
+    build: { context: ., dockerfile: apps/api/Dockerfile, target: build }
+    command: ["pnpm", "--filter", "@forkyou/api", "db:seed"]
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: *database-url
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:
+    name: forkyou_pgdata

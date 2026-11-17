@@ -1,0 +1,49 @@
+name: Bug report
+description: Something isn't working as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Security issues go through private reporting instead**; see SECURITY.md.
+        Never paste API keys, session cookies or `.env` contents here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where?
+      options:
+        - Website (forkyou.dev)
+        - VS Code extension
+        - JetBrains plugin
+        - Neovim plugin
+        - API
+        - Self-hosting / local development
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: e.g. extension 2.0.1, or commit abc1234
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error messages
+      description: Remove any keys, tokens or personal data first.
+      render: text

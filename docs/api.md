@@ -1,0 +1,193 @@
+# API reference
+
+Base URL: `https://forkyou.dev/api` in production (through the web proxy), or the API host
+directly (`http://localhost:4000` locally). Paths below are relative to the base.
+
+The source of truth for every shape and limit is `packages/shared`. This page explains them.
+
+## Authentication
+
+| Method         | Used by                    | How                                                    |
+| -------------- | -------------------------- | ------------------------------------------------------ |
+| API key        | Editor extensions, scripts | `Authorization: Bearer fy_…`. Create keys in Settings. |
+| Session cookie | The web app                | Set by the GitHub login flow. Browsers only.           |
+
+Each endpoint accepts only the methods listed. An API key can't manage API keys, and a browser
+cookie can't upload sessions.
+
+## Errors
+
+Every non-2xx response has this shape:
+
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "✖ Too big: expected number to be <=900 → at sessions[0].durationSeconds"
+  }
+}
+```
+
+| Status | `code`               | Meaning                                                  |
+| ------ | -------------------- | -------------------------------------------------------- |
+| 400    | `invalid_request`    | Body or query failed validation. `message` says where.   |
+| 401    | `unauthorized`       | Missing, unknown or revoked credentials                  |
+| 404    | `not_found`          | Unknown route or resource (including another user's key) |
+| 410    | `extension_outdated` | A ForkYou 1.x endpoint. The client must update.          |
+| 413    | `payload_too_large`  | Body too large (sessions: 512 KB)                        |
+| 503    | `oauth_unconfigured` | GitHub login isn't configured on this server             |
+| 500    | `internal`           | Bug. Logged with a request id.                           |
+
+## Limits
+
+| Limit                           | Value                                                   |
+| ------------------------------- | ------------------------------------------------------- |
+| Sessions per batch              | 500                                                     |
+| Session length                  | 1 s – 15 min (extensions split longer stretches)        |
+| Session age                     | ≤ 7 days old (older offline-queue entries are rejected) |
+| Clock skew tolerated            | 60 s                                                    |
+| Lines added/removed per session | ≤ 100,000                                               |
+| Presence heartbeat              | every 60 s; online window 150 s                         |
+
+## Endpoints
+
+### `POST /v1/sessions` (API key)
+
+Upload closed coding sessions.
+
+```json
+{
+  "sessions": [
+    {
+      "id": "0b3f9b9e-6f43-4d6c-9a52-2f1d6f0c8a11",
+      "startedAt": "2026-11-16T10:00:00.000Z",
+      "durationSeconds": 420,
+      "language": "typescript",
+      "project": "forkyou",
+      "editor": "vscode",
+      "linesAdded": 12,
+      "linesRemoved": 3
+    }
+  ]
+}
+```
+
+`project`, `linesAdded` and `linesRemoved` are optional. `editor` is one of `vscode`, `jetbrains`,
+`vim`, `other`.
+
+Response `200`:
+
+```json
+{ "accepted": 1, "duplicates": 0, "rejected": [{ "id": "…", "reason": "overlaps_existing" }] }
+```
+
+| Rejection reason    | Meaning                                                          | Client action                |
+| ------------------- | ---------------------------------------------------------------- | ---------------------------- |
+| `future_start`      | Session ends after server time + skew                            | Drop; check the device clock |
+| `too_old`           | Started more than 7 days ago                                     | Drop                         |
+| `overlaps_in_batch` | Overlaps an earlier session in the same batch                    | Drop                         |
+| `overlaps_existing` | Overlaps a session already stored (e.g. another editor was open) | Drop                         |
+
+The whole batch is never rejected for one bad session (apart from schema errors, which are `400`).
+**Clients must drop every id in `accepted`, `duplicates` and `rejected`** and retry only on network
+errors or 5xx.
+
+### `POST /v1/presence` (API key)
+
+```json
+{ "online": true, "language": "rust", "editor": "vscode" }
+```
+
+`204`. Send `online: true` every 60 s while the user is active and `online: false` on idle, blur or exit.
+
+### `GET /v1/presence/online` (public)
+
+```json
+{
+  "count": 12,
+  "users": [{ "username": "ada", "avatarUrl": null, "language": "rust", "lastSeenAt": "…" }]
+}
+```
+
+Up to 100 users, most recent first. Respects each user's privacy settings. Cached 15 s.
+
+### `GET /v1/leaderboard?range=day|week|month` (public)
+
+Rolling 24 h / 7 d / 30 d windows. Top 100. Cached 30 s.
+
+```json
+{
+  "range": "week",
+  "entries": [
+    {
+      "rank": 1,
+      "username": "ada",
+      "avatarUrl": null,
+      "totalSeconds": 5400,
+      "topLanguage": "rust",
+      "online": true
+    }
+  ]
+}
+```
+
+### `GET /v1/me` (API key or cookie)
+
+The current user. Extensions use it to check a key during setup.
+
+```json
+{
+  "id": "…",
+  "username": "ada",
+  "name": "Ada",
+  "avatarUrl": "…",
+  "showPresence": true,
+  "showLanguage": true,
+  "createdAt": "…"
+}
+```
+
+### `PATCH /v1/me/settings` (cookie)
+
+`{ "showPresence"?: boolean, "showLanguage"?: boolean }` → the updated user.
+
+### `GET /v1/me/stats?range=7d|30d|365d&tz=<IANA zone>` (API key or cookie)
+
+`tz` defaults to `UTC`; unknown zones are a `400`. `days` is dense (one entry per day, oldest first,
+zero-filled). Languages and projects return the top 20.
+
+```json
+{
+  "range": "7d",
+  "totalSeconds": 14460,
+  "days": [{ "day": "2026-11-10", "seconds": 0 }],
+  "languages": [{ "language": "python", "seconds": 3360 }],
+  "projects": [{ "project": "forkyou", "seconds": 6900 }]
+}
+```
+
+### API keys (cookie)
+
+| Endpoint              | Body / response                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| `GET /v1/keys`        | `[{ id, name, prefix, lastUsedAt, createdAt }]`, active keys only                                  |
+| `POST /v1/keys`       | `{ name }` → `201 { id, name, prefix, lastUsedAt, createdAt, key }`. **`key` is shown only once.** |
+| `DELETE /v1/keys/:id` | `204`, or `404` if it isn't yours or is already revoked                                            |
+
+### Auth (browser)
+
+| Endpoint                    |                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `GET /auth/github`          | Starts the OAuth flow (redirect)                                                           |
+| `GET /auth/github/callback` | OAuth callback → sets the session cookie → redirects to `/dashboard` (or `/login?error=…`) |
+| `POST /auth/logout`         | `204`. Deletes the session and clears the cookie.                                          |
+
+### `GET /health`
+
+`200 {"status":"ok"}`, or `503` if the database is unreachable.
+
+## Versioning
+
+- Additive changes (new optional fields, new endpoints) ship within `/v1`.
+- Removing or changing a field, or tightening a limit, requires `/v2` or a deprecation period long
+  enough for extensions to update. Extensions in the wild can't be upgraded instantly.
