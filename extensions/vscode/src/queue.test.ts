@@ -57,6 +57,14 @@ describe("SessionQueue", () => {
     ]);
   });
 
+  it("saves even if the storage folder doesn't exist yet and refresh() hasn't run", async () => {
+    const q = new SessionQueue(join(dir, "not-created-yet"), "a", () => NOW);
+
+    await q.add(session(1));
+
+    expect(await readdir(join(dir, "not-created-yet"))).toEqual(["queue-a.json"]);
+  });
+
   it("removes uploaded sessions and deletes the file once empty", async () => {
     const q = queue("a");
     await q.refresh();

@@ -147,20 +147,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     log,
     context.secrets.onDidChange(async () => {
-      await queue.refresh();
       await updateTracking();
-      void syncer.tick();
       syncer.resume();
       void syncer.tick();
     }),
-    { dispose: () => clearInterval(timer) },
+    {
+      dispose: () => {
+        clearInterval(timer);
+        stopTracking();
+      },
+    },
     vscode.commands.registerCommand("forkyou.configureApiKey", configureApiKey),
     vscode.commands.registerCommand("forkyou.clearApiKey", clearApiKey),
     vscode.commands.registerCommand("forkyou.openDashboard", () => openWeb("/dashboard")),
     vscode.commands.registerCommand("forkyou.showLog", () => log.show()),
   );
 
+  await queue.refresh().catch((error) => log.error(`Couldn't read queued sessions: ${error}`));
   await updateTracking();
+  void syncer.tick();
 
   if (await removeLegacyKey(context.globalState)) {
     log.info("Removed a ForkYou 1.x API key; 2.0 needs a new one");

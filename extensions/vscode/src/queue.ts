@@ -99,6 +99,8 @@ export class SessionQueue {
         await unlink(this.file).catch(() => {});
         return;
       }
+      // The folder may not exist yet (first run) or may have been deleted since.
+      await mkdir(this.dir, { recursive: true });
       // Write then rename, so a crash mid-write can't leave a truncated file.
       const temp = `${this.file}.tmp`;
       await writeFile(temp, snapshot);
