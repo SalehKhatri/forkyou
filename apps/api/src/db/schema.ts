@@ -3,9 +3,11 @@ import {
   bigint,
   boolean,
   check,
+  date,
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -95,6 +97,28 @@ export const codingSessions = pgTable(
     index("coding_sessions_started_idx").on(t.startedAt),
     check("coding_sessions_duration_positive", sql`${t.durationSeconds} > 0`),
     check("coding_sessions_end_after_start", sql`${t.endedAt} > ${t.startedAt}`),
+  ],
+);
+
+/**
+ * Seconds coded per user, UTC day (of each session's start) and language: a rollup of
+ * `coding_sessions` that keeps leaderboard queries fast as sessions pile up (ADR 0006).
+ * Maintained by `ingestSessions` in the same transaction as the sessions themselves, so it always
+ * equals the sum of `coding_sessions`; `rebuildDailyStats` recomputes it from scratch.
+ */
+export const dailyStats = pgTable(
+  "daily_stats",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+    language: text("language").notNull(),
+    seconds: integer("seconds").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.day, t.language] }),
+    index("daily_stats_day_idx").on(t.day),
   ],
 );
 

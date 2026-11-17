@@ -3,6 +3,7 @@ import { and, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { codingSessions } from "../db/schema.js";
 import { days, seconds } from "../lib/time.js";
+import { addToDailyStats } from "./rollups.js";
 
 /** Sessions may touch at their edges by this much without counting as overlapping. */
 const OVERLAP_TOLERANCE_MS = seconds(2);
@@ -21,6 +22,8 @@ const overlaps = (a: Interval, b: Interval) =>
  *   (This replaces v1's per-batch duration check and HMAC signing.)
  * - Serialised per user: concurrent batches for the same user take an advisory lock, so two
  *   overlapping uploads can't both pass the overlap check.
+ * - Rolled up: `daily_stats` is updated in the same transaction from the rows actually inserted,
+ *   so it always equals the sum of `coding_sessions` (ADR 0006).
  *
  * Rejected sessions are reported back by id so clients can drop them instead of retrying forever.
  */
@@ -122,8 +125,13 @@ export async function ingestSessions(
           })),
         )
         .onConflictDoNothing({ target: codingSessions.id })
-        .returning({ id: codingSessions.id });
+        .returning({
+          startedAt: codingSessions.startedAt,
+          language: codingSessions.language,
+          durationSeconds: codingSessions.durationSeconds,
+        });
       inserted = rows.length;
+      await addToDailyStats(tx, userId, rows);
     }
 
     return {

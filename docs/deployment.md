@@ -93,6 +93,10 @@ runtime, for server-side fetches. Serve it over HTTPS: in production the session
 - **API**: redeploy the previous image tag (`ghcr.io/<owner>/forkyou-api:sha-<previous>`) on the host.
   Migrations are forward-only, so a rollback must be compatible with the current schema. That's why
   destructive schema changes ship in two steps (see `data-model.md`).
+- **After rolling back past the `daily_stats` rollup** (ADR 0006) and forward again, the older
+  version will have stored sessions without updating the rollup. Rebuild it once from a checkout
+  (the API image doesn't ship scripts), with `DATABASE_URL` set to the production database:
+  `pnpm --filter @forkyou/api db:rebuild-rollups`. It's safe while the API is running.
 - **Web**: _Promote_ the previous deployment in Vercel.
 
 ## Operations checklist

@@ -7,6 +7,7 @@ erDiagram
   users ||--o{ auth_sessions : has
   users ||--o{ api_keys : has
   users ||--o{ coding_sessions : records
+  users ||--o{ daily_stats : "rolled up into"
   users {
     uuid id PK
     bigint github_id UK
@@ -38,6 +39,12 @@ erDiagram
     text project
     text editor
   }
+  daily_stats {
+    uuid user_id PK
+    date day PK "UTC day of session start"
+    text language PK
+    int seconds
+  }
 ```
 
 ## Tables
@@ -53,18 +60,24 @@ sliding expiry; expired rows are deleted when they're next presented.
 **`api_keys`**: editor credentials. Only `key_hash` is stored; `key_prefix` (`fy_xxxx`) is for
 display. Revoking sets `revoked_at`, which keeps history for `last_used_at`.
 
+**`daily_stats`**: seconds per user, UTC day and language, rolled up from `coding_sessions` so the
+leaderboard doesn't have to add up millions of sessions ([ADR 0006](adr/0006-daily-stats-rollup.md)).
+`ingestSessions` updates it in the same transaction that inserts sessions, from the rows actually
+inserted. `pnpm --filter @forkyou/api db:rebuild-rollups` recomputes it from scratch.
+
 **`coding_sessions`**: the fact table. Indexed on `(user_id, started_at)` for per-user reads and on
 `started_at` for leaderboard windows. File paths are deliberately not stored.
 
 ## Invariants
 
-| Invariant                                                   | Enforced by                                        |
-| ----------------------------------------------------------- | -------------------------------------------------- |
-| A user's sessions never overlap (beyond 2 s edge tolerance) | `ingestSessions` under a per-user advisory lock    |
-| `ended_at > started_at`, `duration_seconds > 0`             | Check constraints                                  |
-| A session id is stored at most once                         | Primary key + `ON CONFLICT DO NOTHING`             |
-| One user per GitHub id; usernames unique                    | Unique constraints + `upsertGithubUser`            |
-| No plaintext secrets at rest                                | Only hashes stored for session tokens and API keys |
+| Invariant                                                                        | Enforced by                                              |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| A user's sessions never overlap (beyond 2 s edge tolerance)                      | `ingestSessions` under a per-user advisory lock          |
+| `ended_at > started_at`, `duration_seconds > 0`                                  | Check constraints                                        |
+| A session id is stored at most once                                              | Primary key + `ON CONFLICT DO NOTHING`                   |
+| One user per GitHub id; usernames unique                                         | Unique constraints + `upsertGithubUser`                  |
+| No plaintext secrets at rest                                                     | Only hashes stored for session tokens and API keys       |
+| `daily_stats` equals the sum of `coding_sessions` per user, UTC day and language | `ingestSessions` (same transaction); `rebuildDailyStats` |
 
 Because sessions never overlap, a user's total time over any window can't exceed the wall-clock
 length of that window. That's the core anti-cheat property.
@@ -81,6 +94,6 @@ column the running version still reads), split into two deploys: stop using it, 
 
 ## Growth plan
 
-Everything is computed from `coding_sessions` on read, which is fine to millions of rows with the
-current indexes. When leaderboard or stats queries get slow, add a `daily_stats` rollup maintained in
-the ingest transaction (see [ADR 0003](adr/0003-postgres-only.md)).
+Personal stats are computed from `coding_sessions` on read; the `(user_id, started_at)` index keeps
+them fast. The leaderboard reads the `daily_stats` rollup, so its cost grows with users × days
+rather than with sessions. Measurements: [performance.md](performance.md).
