@@ -1,8 +1,11 @@
+import { randomUUID } from "node:crypto";
 import * as vscode from "vscode";
 import { ApiClient } from "./api.js";
 import { isApiKeyFormat, resolveApiUrl, webUrl } from "./config.js";
 import { Credentials, keyCheckMessage } from "./credentials.js";
+import { watchEditor } from "./editor.js";
 import { removeLegacyKey } from "./legacy.js";
+import { SessionTracker } from "./tracker.js";
 
 /** Set once we've suggested adding a key, so a fresh install doesn't nag on every start. */
 const SETUP_PROMPTED = "forkyou.setupPrompted";
@@ -64,13 +67,39 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.showInformationMessage("ForkYou: API key cleared. Tracking is off.");
   }
 
+  // Until the offline queue exists, closed sessions are only logged (no project name).
+  const tracker = new SessionTracker({
+    now: Date.now,
+    newId: randomUUID,
+    onSession: (s) =>
+      log.info(`Session closed: ${s.durationSeconds}s of ${s.language} (${s.startedAt})`),
+  });
+  // Track only while signed in. Secrets are shared by all windows, so signing out anywhere stops
+  // tracking everywhere.
+  let watcher: vscode.Disposable | undefined;
+  async function updateTracking(): Promise<void> {
+    const signedIn = Boolean(await credentials.get());
+    if (signedIn && !watcher) {
+      watcher = watchEditor(tracker);
+      log.info("Tracking on");
+    } else if (!signedIn && watcher) {
+      watcher.dispose();
+      watcher = undefined;
+      log.info("Tracking off");
+    }
+  }
+
   context.subscriptions.push(
     log,
+    context.secrets.onDidChange(() => void updateTracking()),
+    { dispose: () => watcher?.dispose() },
     vscode.commands.registerCommand("forkyou.configureApiKey", configureApiKey),
     vscode.commands.registerCommand("forkyou.clearApiKey", clearApiKey),
     vscode.commands.registerCommand("forkyou.openDashboard", () => openWeb("/dashboard")),
     vscode.commands.registerCommand("forkyou.showLog", () => log.show()),
   );
+
+  await updateTracking();
 
   if (await removeLegacyKey(context.globalState)) {
     log.info("Removed a ForkYou 1.x API key; 2.0 needs a new one");
