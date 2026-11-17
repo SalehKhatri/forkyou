@@ -50,6 +50,7 @@ let uploads: { key: string; ids: string[] }[];
 let stopped: StopReason[];
 let warnings: string[];
 let random: number;
+let uploadedCalls: number;
 
 function syncer(queue: ReturnType<typeof memoryQueue>) {
   return new Syncer({
@@ -63,6 +64,7 @@ function syncer(queue: ReturnType<typeof memoryQueue>) {
     random: () => random,
     log: { info: () => {}, warn: (m) => warnings.push(m) },
     onStopped: (reason) => stopped.push(reason),
+    onUploaded: () => uploadedCalls++,
   });
 }
 
@@ -73,6 +75,7 @@ beforeEach(() => {
   uploads = [];
   stopped = [];
   warnings = [];
+  uploadedCalls = 0;
   // The top of the jitter range, so delays equal the plain backoff unless a test changes it.
   random = 0.999_999;
 });
@@ -85,6 +88,7 @@ describe("Syncer", () => {
 
     expect(uploads).toEqual([{ key: "fy_example", ids: [session(1).id, session(2).id] }]);
     expect(queue.size).toBe(0);
+    expect(uploadedCalls).toBe(1);
   });
 
   it("removes rejected sessions too, since retrying them would never succeed", async () => {
@@ -204,6 +208,7 @@ describe("Syncer", () => {
 
     expect(stopped).toEqual(["outdated"]);
     expect(uploads).toHaveLength(1);
+    expect(uploadedCalls).toBe(0);
   });
 
   it("drops a batch the server refuses outright (400), so it can't block the queue", async () => {

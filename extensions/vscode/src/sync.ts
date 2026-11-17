@@ -26,6 +26,8 @@ export interface SyncerOptions {
   log: { info(message: string): void; warn(message: string): void };
   /** Called when the server stops accepting the key (401) or this extension version (410). */
   onStopped: (reason: StopReason) => void;
+  /** Called after each batch the server processed. */
+  onUploaded?: () => void;
 }
 
 /**
@@ -94,6 +96,7 @@ export class Syncer {
       for (const [reason, count] of countReasons(rejected)) {
         log.warn(`${count} sessions rejected: ${reason}`);
       }
+      this.options.onUploaded?.();
       return true;
     }
 
