@@ -13,6 +13,8 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm fetch --frozen-lockfile
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --offline
+# public/ is copied into the runtime image, but git doesn't track it while it's empty.
+RUN mkdir -p apps/web/public
 # Next.js bakes the /api rewrite destination into the build, so the API address is a build
 # argument, not just a runtime variable. NEXT_OUTPUT switches on the self-contained server.
 ARG API_URL=http://api:4000
