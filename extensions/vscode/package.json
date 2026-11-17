@@ -1,0 +1,103 @@
+{
+  "name": "forkyou",
+  "displayName": "ForkYou",
+  "description": "Track the time you actually spend coding. See your stats and climb the leaderboard on forkyou.dev.",
+  "version": "2.0.0",
+  "publisher": "ForkYou",
+  "license": "MIT",
+  "private": true,
+  "pricing": "Free",
+  "icon": "media/icon.png",
+  "homepage": "https://forkyou.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SalehKhatri/forkyou.git",
+    "directory": "extensions/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/SalehKhatri/forkyou/issues"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "time tracking",
+    "coding time",
+    "productivity",
+    "stats",
+    "leaderboard"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": true
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "forkyou.configureApiKey",
+        "title": "Configure API Key",
+        "category": "ForkYou"
+      },
+      {
+        "command": "forkyou.clearApiKey",
+        "title": "Clear API Key",
+        "category": "ForkYou"
+      },
+      {
+        "command": "forkyou.openDashboard",
+        "title": "Open Dashboard",
+        "category": "ForkYou"
+      },
+      {
+        "command": "forkyou.showLog",
+        "title": "Show Log",
+        "category": "ForkYou"
+      }
+    ],
+    "configuration": {
+      "title": "ForkYou",
+      "properties": {
+        "forkyou.sendProjectName": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Send the workspace folder name with each coding session, so your dashboard can show time per project. Project names are only visible to you. File names and paths are never sent."
+        },
+        "forkyou.apiUrl": {
+          "type": "string",
+          "default": "https://forkyou.dev/api",
+          "format": "uri",
+          "scope": "application",
+          "markdownDescription": "ForkYou server URL. Only change this for local development (e.g. `http://localhost:3000/api`). User settings only, so a workspace can't redirect your API key elsewhere."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "dev": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "package": "node esbuild.mjs --production && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@forkyou/shared": "workspace:^",
+    "@types/vscode": "1.90.0",
+    "@vscode/vsce": "^4.1.1",
+    "esbuild": "^0.28.2",
+    "vitest": "^5.1"
+  }
+}

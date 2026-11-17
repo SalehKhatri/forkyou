@@ -67,6 +67,7 @@ Full setup, including the GitHub OAuth app: [docs/development.md](docs/developme
 apps/api          Hono API: ingestion, auth, stats, presence (Node, Drizzle, Postgres)
 apps/web          Next.js app: landing, leaderboard, dashboard, settings
 packages/shared   Wire contract: Zod schemas, types and limits shared by every client
+extensions/vscode VS Code extension (published as ForkYou.forkyou)
 docs/             Architecture, API reference, data model, development, deployment, ADRs
 ```
 

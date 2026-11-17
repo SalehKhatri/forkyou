@@ -7,13 +7,22 @@ making changes. `CLAUDE.md` imports this file.
 
 ForkYou tracks coding time from editor extensions. Three parts:
 
-| Path              | What                                      | Stack                                         |
-| ----------------- | ----------------------------------------- | --------------------------------------------- |
-| `apps/api`        | Ingestion, auth, stats, presence          | Hono on Node, Drizzle ORM, PostgreSQL, Zod    |
-| `apps/web`        | Landing, leaderboard, dashboard, settings | Next.js 16 (App Router), React 19, Tailwind 4 |
-| `packages/shared` | Wire contract used by every client        | Zod 4 schemas, types, constants               |
+| Path                | What                                      | Stack                                         |
+| ------------------- | ----------------------------------------- | --------------------------------------------- |
+| `apps/api`          | Ingestion, auth, stats, presence          | Hono on Node, Drizzle ORM, PostgreSQL, Zod    |
+| `apps/web`          | Landing, leaderboard, dashboard, settings | Next.js 16 (App Router), React 19, Tailwind 4 |
+| `packages/shared`   | Wire contract used by every client        | Zod 4 schemas, types, constants               |
+| `extensions/vscode` | VS Code extension (`ForkYou.forkyou`)     | VS Code API, esbuild bundle of `shared`       |
 
 Architecture and reasoning: `docs/architecture.md` and `docs/adr/`.
+
+### Extensions (`extensions/*`)
+
+- Keep logic in modules that don't import `vscode` (session tracking, queue, API client) and
+  unit-test them; `extension.ts` only wires them to editor events. See ADR 0005.
+- Follow the protocol in `docs/extensions.md`, and never send anything outside the shared schema.
+- Shipped extensions can't be upgraded instantly: bump `version` and update `CHANGELOG.md` for
+  every user-visible change.
 
 ## Commands
 

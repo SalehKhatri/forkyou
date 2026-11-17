@@ -10,3 +10,6 @@ coverage/
 !.env.example
 *.tsbuildinfo
 next-env.d.ts
+
+# Packaged VS Code extensions
+*.vsix
