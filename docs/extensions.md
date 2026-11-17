@@ -34,7 +34,8 @@ A **session** is a continuous stretch of activity in one language and project.
 - Every 60 s, if the queue is non-empty, send up to 500 sessions to `POST /v1/sessions`.
 - On `200`: remove every id that appears in `accepted`, `duplicates` **or** `rejected`. Rejected
   sessions will never be accepted, so retrying them would loop forever.
-- On a network error or `5xx`: keep the queue and back off (60 s, 2 min, 4 min … capped at 15 min).
+- On a network error or `5xx`: keep the queue and back off (60 s, 2 min, 4 min … capped at 15 min),
+  waiting a random 50–100% of each step so clients don't all retry at once after an outage.
 - On `401`: stop syncing and prompt the user to re-enter their key. Keep the queue.
 - On `400`: a bug in the plugin. Log it, drop that batch, and report it.
 - On `410`: the plugin is too old. Tell the user to update.

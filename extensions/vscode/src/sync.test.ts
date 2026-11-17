@@ -49,6 +49,7 @@ let responses: ApiResult<IngestResult>[];
 let uploads: { key: string; ids: string[] }[];
 let stopped: StopReason[];
 let warnings: string[];
+let random: number;
 
 function syncer(queue: ReturnType<typeof memoryQueue>) {
   return new Syncer({
@@ -59,6 +60,7 @@ function syncer(queue: ReturnType<typeof memoryQueue>) {
     },
     getKey: async () => key,
     now: () => now,
+    random: () => random,
     log: { info: () => {}, warn: (m) => warnings.push(m) },
     onStopped: (reason) => stopped.push(reason),
   });
@@ -71,6 +73,8 @@ beforeEach(() => {
   uploads = [];
   stopped = [];
   warnings = [];
+  // The top of the jitter range, so delays equal the plain backoff unless a test changes it.
+  random = 0.999_999;
 });
 
 describe("Syncer", () => {
@@ -128,7 +132,7 @@ describe("Syncer", () => {
 
     expect(uploads).toHaveLength(4);
     expect(queue.size).toBe(1);
-    expect(warnings.at(-1)).toBe("Upload failed (network); retrying in 8 min");
+    expect(warnings.at(-1)).toBe("Upload failed (network); retrying in 480 s");
   });
 
   it("caps the backoff at 15 minutes", async () => {
@@ -141,7 +145,7 @@ describe("Syncer", () => {
     }
 
     expect(uploads).toHaveLength(6);
-    expect(warnings.at(-1)).toBe("Upload failed (server); retrying in 15 min");
+    expect(warnings.at(-1)).toBe("Upload failed (server); retrying in 900 s");
   });
 
   it("resets the backoff after a successful upload", async () => {
@@ -153,7 +157,23 @@ describe("Syncer", () => {
     now += MINUTE;
     await sync.tick(); // session 1 uploaded, then session 2 fails: retry in 1 min, not 2
 
-    expect(warnings.at(-1)).toBe("Upload failed (network); retrying in 1 min");
+    expect(warnings.at(-1)).toBe("Upload failed (network); retrying in 60 s");
+  });
+
+  it("spreads retries over 50-100% of the backoff so clients don't retry in lockstep", async () => {
+    const sync = syncer(memoryQueue([session(1)]));
+    responses = [failed("network"), failed("network")];
+    random = 0;
+
+    await sync.tick(); // fails: retry after 30 s instead of 60 s
+    now += 30_000;
+    await sync.tick();
+
+    expect(uploads).toHaveLength(2);
+    expect(warnings).toEqual([
+      "Upload failed (network); retrying in 30 s",
+      "Upload failed (network); retrying in 60 s",
+    ]);
   });
 
   it("stops on 401, keeps the queue, and resumes when the key changes", async () => {

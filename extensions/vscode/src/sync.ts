@@ -21,6 +21,8 @@ export interface SyncerOptions {
   upload: (apiKey: string, sessions: SessionInput[]) => Promise<ApiResult<IngestResult>>;
   getKey: () => PromiseLike<string | undefined>;
   now: () => number;
+  /** Returns a number in [0, 1). Defaults to Math.random; injected so tests are deterministic. */
+  random?: () => number;
   log: { info(message: string): void; warn(message: string): void };
   /** Called when the server stops accepting the key (401) or this extension version (410). */
   onStopped: (reason: StopReason) => void;
@@ -29,7 +31,8 @@ export interface SyncerOptions {
 /**
  * Uploads queued sessions (docs/extensions.md → Sync). Sessions leave the queue only after the
  * server has processed them: accepted, duplicate or rejected alike, since a rejected session
- * would be rejected again forever. Network and server errors back off from 1 to 15 minutes. A 401
+ * would be rejected again forever. Network and server errors back off from 1 to 15 minutes, with
+ * jitter. A 401
  * or 410 stops uploads until `resume()`; sessions keep queueing meanwhile.
  */
 export class Syncer {
@@ -98,9 +101,13 @@ export class Syncer {
       case "network":
       case "server": {
         this.failures++;
-        const delay = Math.min(FIRST_RETRY_MS * 2 ** (this.failures - 1), MAX_RETRY_MS);
+        const backoff = Math.min(FIRST_RETRY_MS * 2 ** (this.failures - 1), MAX_RETRY_MS);
+        // Wait a random 50-100% of the backoff, so clients that failed together (a server outage)
+        // don't all retry in the same second when it comes back.
+        const random = this.options.random ?? Math.random;
+        const delay = Math.round(backoff * (0.5 + random() / 2));
         this.retryAt = this.options.now() + delay;
-        log.warn(`Upload failed (${result.message}); retrying in ${delay / 60_000} min`);
+        log.warn(`Upload failed (${result.message}); retrying in ${Math.round(delay / 1000)} s`);
         return false;
       }
       case "unauthorized":
