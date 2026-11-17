@@ -16,6 +16,8 @@ implementation ([ADR 0005](adr/0005-vscode-extension-in-monorepo.md)).
 
 ## Sessions
 
+[tracking.md](tracking.md) explains these rules, their accuracy and the anti-cheat model.
+
 A **session** is a continuous stretch of activity in one language and project.
 
 - **Start** on the first edit, selection change or scroll after being inactive.

@@ -77,6 +77,7 @@ docs/             Architecture, API reference, data model, development, deployme
 - [API reference](docs/api.md): endpoints, auth, errors, limits
 - [Data model](docs/data-model.md): tables and invariants
 - [Extension protocol](docs/extensions.md): what an editor plugin must do
+- [How time is tracked](docs/tracking.md): what counts, accuracy, and anti-cheat
 - [Development](docs/development.md): local setup, testing, migrations
 - [Deployment](docs/deployment.md): CI/CD, environments, secrets
 - [Decision records](docs/adr/): why things are the way they are
