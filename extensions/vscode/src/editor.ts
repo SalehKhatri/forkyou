@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 import { countLines, type SessionTracker, type WorkContext } from "./tracker.js";
 
+/** What receives activity: the session tracker, and presence alongside it. */
+export type ActivitySink = Pick<SessionTracker, "activity" | "keepAlive" | "end" | "tick">;
+
 /**
  * Documents the user is actually editing. Leaves out output panels, Git and diff views, settings
  * editors and the like, whose changes aren't the user's coding.
@@ -20,7 +23,7 @@ const MAX_PROJECT_LENGTH = 128;
  * Only the language and the workspace folder name are read; file names and paths never leave this
  * function. Nothing counts while the window isn't focused.
  */
-export function watchEditor(tracker: SessionTracker): vscode.Disposable {
+export function watchEditor(tracker: ActivitySink): vscode.Disposable {
   /** Activity in a code document: attributed to its language and project. */
   const onCode = (document: vscode.TextDocument, lines?: { added: number; removed: number }) => {
     if (!vscode.window.state.focused) return;

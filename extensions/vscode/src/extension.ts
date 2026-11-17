@@ -1,18 +1,22 @@
 import { randomUUID } from "node:crypto";
-import { ingestResultSchema } from "@forkyou/shared";
+import { ingestResultSchema, statsResponseSchema } from "@forkyou/shared";
 import * as vscode from "vscode";
 import { ApiClient } from "./api.js";
 import { isApiKeyFormat, resolveApiUrl, webUrl } from "./config.js";
 import { Credentials, keyCheckMessage } from "./credentials.js";
-import { watchEditor } from "./editor.js";
+import { type ActivitySink, watchEditor } from "./editor.js";
 import { removeLegacyKey } from "./legacy.js";
+import { Presence } from "./presence.js";
 import { SessionQueue } from "./queue.js";
+import { StatusBar } from "./status.js";
 import { Syncer } from "./sync.js";
 import { SessionTracker } from "./tracker.js";
 
 /** Set once we've suggested adding a key, so a fresh install doesn't nag on every start. */
 const SETUP_PROMPTED = "forkyou.setupPrompted";
 const SYNC_INTERVAL_MS = 60_000;
+/** Today's time also refreshes after every upload; this catches midnight and other windows. */
+const STATUS_INTERVAL_MS = 15 * 60_000;
 
 /** Set by activate(): closes the open session and makes a last upload attempt. */
 let shutdown: (() => Promise<void>) | undefined;
@@ -69,8 +73,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   }
 
   async function clearApiKey(): Promise<void> {
-    // Close the open session and upload what's queued while the key still works.
+    // Close the open session, go offline and upload what's queued while the key still works.
     stopTracking();
+    await presence.inactive();
     await queue.flushed();
     await syncer.flush();
     await credentials.clear();
@@ -95,9 +100,56 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     now: Date.now,
     log,
     onStopped: (reason) => void uploadsStopped(reason),
+    onUploaded: () => void refreshStatus(),
   });
+  const presence = new Presence({
+    send: (key, body) => api.request("POST", "/v1/presence", key, body, null),
+    getKey: () => credentials.get(),
+    now: Date.now,
+  });
+  /** Every editor event goes to both the session tracker and presence. */
+  const activity: ActivitySink = {
+    activity: (workContext, lines) => {
+      tracker.activity(workContext, lines);
+      presence.active(workContext.language);
+    },
+    keepAlive: () => {
+      tracker.keepAlive();
+      presence.active();
+    },
+    end: () => {
+      tracker.end();
+      void presence.inactive();
+    },
+    tick: () => {
+      tracker.tick();
+      presence.tick();
+    },
+  };
+
+  const status = new StatusBar(context.extension.id);
+  status.show({ kind: "loading" });
+  async function refreshStatus(): Promise<void> {
+    const key = await credentials.get();
+    if (!key) return status.show({ kind: "signedOut" });
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const result = await api.request(
+      "GET",
+      `/v1/me/stats?range=7d&tz=${encodeURIComponent(tz)}`,
+      key,
+      undefined,
+      statsResponseSchema,
+    );
+    if (result.ok) {
+      status.show({ kind: "today", seconds: result.data.days.at(-1)?.seconds ?? 0 });
+    } else if (result.failure === "unauthorized" || result.failure === "outdated") {
+      status.show({ kind: "stopped", reason: result.failure });
+    }
+    // Otherwise (offline, server error) keep showing the last value.
+  }
 
   async function uploadsStopped(reason: "unauthorized" | "outdated"): Promise<void> {
+    status.show({ kind: "stopped", reason });
     if (reason === "unauthorized") {
       const choice = await vscode.window.showWarningMessage(
         "ForkYou: your API key was rejected, so uploads are paused. Your time is still recorded.",
@@ -125,7 +177,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   async function updateTracking(): Promise<void> {
     const signedIn = Boolean(await credentials.get());
     if (signedIn && !watcher) {
-      watcher = watchEditor(tracker);
+      watcher = watchEditor(activity);
       log.info("Tracking on");
     } else if (!signedIn) {
       if (watcher) log.info("Tracking off");
@@ -137,11 +189,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   }
 
-  const timer = setInterval(() => void syncer.tick(), SYNC_INTERVAL_MS);
+  const syncTimer = setInterval(() => void syncer.tick(), SYNC_INTERVAL_MS);
+  const statusTimer = setInterval(() => void refreshStatus(), STATUS_INTERVAL_MS);
   shutdown = async () => {
     stopTracking();
-    await queue.flushed();
-    await syncer.flush();
+    await Promise.all([presence.inactive(), queue.flushed().then(() => syncer.flush())]);
   };
 
   context.subscriptions.push(
@@ -150,10 +202,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await updateTracking();
       syncer.resume();
       void syncer.tick();
+      void refreshStatus();
     }),
+    status,
     {
       dispose: () => {
-        clearInterval(timer);
+        clearInterval(syncTimer);
+        clearInterval(statusTimer);
         stopTracking();
       },
     },
@@ -166,6 +221,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   await queue.refresh().catch((error) => log.error(`Couldn't read queued sessions: ${error}`));
   await updateTracking();
   void syncer.tick();
+  void refreshStatus();
 
   if (await removeLegacyKey(context.globalState)) {
     log.info("Removed a ForkYou 1.x API key; 2.0 needs a new one");

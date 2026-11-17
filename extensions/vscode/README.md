@@ -3,11 +3,6 @@
 Track the time you actually spend coding, straight from your editor. See where it goes on your
 dashboard at [forkyou.dev](https://forkyou.dev), and climb the leaderboard.
 
-> [!NOTE]
-> **In development.** This is the unreleased 2.0 rewrite. Sign-in, session tracking and upload
-> work; presence is being added and will be in place before 2.0.0 is published. Until then,
-> "What's collected" describes the finished extension.
-
 ## Getting started
 
 1. Sign in at [forkyou.dev](https://forkyou.dev) with GitHub.
@@ -15,6 +10,8 @@ dashboard at [forkyou.dev](https://forkyou.dev), and climb the leaderboard.
 3. In VS Code, run **ForkYou: Configure API Key** from the Command Palette and paste the key.
 
 The key is stored in your operating system's keychain, not in your settings.
+
+Your coding time for today appears in the status bar. Click it to open your dashboard.
 
 ## Upgrading from 1.x
 
