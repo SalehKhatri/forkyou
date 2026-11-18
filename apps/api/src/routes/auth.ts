@@ -40,7 +40,7 @@ export const authRoutes = new Hono<AppEnv>()
     try {
       profile = await github.exchangeCode(code);
     } catch (err) {
-      console.error("github oauth exchange failed", err);
+      c.var.deps.log.error("github oauth exchange failed", err, { requestId: c.get("requestId") });
       return c.redirect(`${env.WEB_URL}/login?error=github`);
     }
 

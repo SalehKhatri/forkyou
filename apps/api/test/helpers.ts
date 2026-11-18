@@ -7,6 +7,7 @@ import type { Deps } from "../src/context.js";
 import { createDb } from "../src/db/client.js";
 import { loadEnv } from "../src/env.js";
 import { TtlCache } from "../src/lib/cache.js";
+import { memoryLogger } from "../src/lib/log.js";
 import {
   createApiKey,
   createAuthSession,
@@ -48,6 +49,8 @@ export function makeApp(db: Deps["db"], overrides: Partial<Deps> = {}) {
     github: fakeGithub(),
     // No caching in tests: every request reads the database.
     leaderboardCache: new TtlCache(0, { maxStaleMs: 0 }),
+    // Quiet by default; pass `log: memoryLogger()` to assert on what's logged.
+    log: memoryLogger(),
     now: () => NOW,
     ...overrides,
   };

@@ -47,6 +47,15 @@ export const v1Routes = new Hono<AppEnv>()
       const { db, now } = c.var.deps;
       const { sessions } = c.req.valid("json");
       const result = await ingestSessions(db, c.var.user.id, sessions, now());
+      // Counts only: a spike in one rejection reason points at a client bug or a cheating attempt.
+      const rejected: Record<string, number> = {};
+      for (const { reason } of result.rejected) rejected[reason] = (rejected[reason] ?? 0) + 1;
+      c.var.deps.log.info("ingest", {
+        accepted: result.accepted,
+        duplicates: result.duplicates,
+        rejected,
+        requestId: c.get("requestId"),
+      });
       return c.json(result);
     },
   )
