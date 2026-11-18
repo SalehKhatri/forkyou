@@ -1,4 +1,5 @@
 import {
+  accountDeleteSchema,
   apiKeyCreateSchema,
   leaderboardQuerySchema,
   type MeResponse,
@@ -10,13 +11,15 @@ import {
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { deleteCookie } from "hono/cookie";
 import { z } from "zod";
 import type { AppEnv } from "../context.js";
 import { users } from "../db/schema.js";
 import { AppError, errorBody, notFound } from "../lib/errors.js";
 import { isValidTimeZone } from "../lib/time.js";
 import { validate } from "../lib/validate.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, sessionCookieName } from "../middleware/auth.js";
+import { deleteAccount, exportAccount } from "../services/account.js";
 import { createApiKey, listApiKeys, revokeApiKey } from "../services/auth.js";
 import { ingestSessions } from "../services/ingest.js";
 import { getLeaderboard } from "../services/leaderboard.js";
@@ -68,6 +71,26 @@ export const v1Routes = new Hono<AppEnv>()
 
   // ------------------------------------------------------------ signed-in user
   .get("/me", requireAuth("apiKey", "session"), (c) => c.json(toMe(c.var.user)))
+  // Web only: an API key (an editor, a script) can't delete the account or download its data.
+  .delete("/me", requireAuth("session"), validate("json", accountDeleteSchema), async (c) => {
+    const { db, env, leaderboardCache } = c.var.deps;
+    if (c.req.valid("json").confirm !== c.var.user.username) {
+      throw new AppError(400, "confirmation_mismatch", "Type your username to confirm");
+    }
+    await deleteAccount(db, c.var.user.id);
+    leaderboardCache.clear();
+    deleteCookie(c, sessionCookieName(env), { path: "/", secure: env.NODE_ENV === "production" });
+    return c.body(null, 204);
+  })
+  .get("/me/export", requireAuth("session"), async (c) => {
+    const { db, now } = c.var.deps;
+    const at = now();
+    const data = await exportAccount(db, c.var.user, toMe(c.var.user), at);
+    const filename = `forkyou-${c.var.user.username}-${at.toISOString().slice(0, 10)}.json`;
+    c.header("Content-Disposition", `attachment; filename="${filename}"`);
+    c.header("Cache-Control", "no-store");
+    return c.json(data);
+  })
   .patch(
     "/me/settings",
     requireAuth("session"),

@@ -56,6 +56,9 @@ A **session** is a continuous stretch of activity in one language and project.
 Send only what's in the schema. Never send file paths, file contents or anything that identifies
 files beyond the project (workspace folder) name.
 
+Users can download everything stored about them, or delete their account and all of it, under
+Settings → Your data on the website (`GET /v1/me/export`, `DELETE /v1/me`).
+
 ## Migrating from 1.x
 
 1.x plugins called `/activities/sync`, `/verify-key`, `/user/status` and `/ping`, and signed requests

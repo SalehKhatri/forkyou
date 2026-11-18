@@ -72,6 +72,9 @@ inserted. `pnpm --filter @forkyou/api db:rebuild-rollups` recomputes it from scr
 **`coding_sessions`**: the fact table. Indexed on `(user_id, started_at)` for per-user reads and on
 `started_at` for leaderboard windows. File paths are deliberately not stored.
 
+**Deleting an account** (`DELETE /v1/me`) deletes the `users` row; `on delete cascade` removes its
+`auth_sessions`, `api_keys`, `coding_sessions` and `daily_stats`. Nothing about the user is kept.
+
 ## Invariants
 
 | Invariant                                                                        | Enforced by                                              |
