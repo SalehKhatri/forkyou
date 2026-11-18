@@ -136,11 +136,11 @@ from someone reading code.
 | Replaying old sessions                   | Fully stopped (ids, 7-day limit, overlap) |
 | Modifying the extension                  | Same as a script                          |
 
-Closing that gap is the server's job. Planned: a way for the maintainer to remove an account from
-the leaderboard (its owner still sees all their time on their dashboard). Under consideration:
-automatically flagging patterns no person produces, such as 20+ hours in a day. Each gets its own
-ADR. A daily cap on leaderboard time was considered and rejected: it penalises honest long days and
-still lets a cheater reach the cap every day.
+Closing that gap is the server's job. The maintainer can hide an account from the leaderboard
+([ADR 0007](adr/0007-leaderboard-moderation.md)); its owner keeps their stats and is told on their
+dashboard. Under consideration: automatically flagging patterns no person produces, such as 20+
+hours in a day. A daily cap on leaderboard time was considered and rejected: it penalises honest
+long days and still lets a cheater reach the cap every day.
 
 ### Why requests can't be limited to the extension
 

@@ -16,6 +16,7 @@ erDiagram
     bool show_language
     timestamptz last_seen_at
     timestamptz offline_at
+    timestamptz leaderboard_hidden_at
   }
   auth_sessions {
     text id PK "sha256(cookie token)"
@@ -53,6 +54,9 @@ erDiagram
 on each login. If a username moves to a different GitHub account, the stale row becomes
 `<username>~<github_id>` until that person logs in again. Presence lives here (`last_seen_at`,
 `offline_at`, `presence_language`, `presence_editor`) because it's a single small row per user.
+`leaderboard_hidden_at` and `leaderboard_hidden_reason` are set by the maintainer to keep an account
+off the leaderboard ([ADR 0007](adr/0007-leaderboard-moderation.md)); the reason is never returned
+by the API.
 
 **`auth_sessions`**: browser logins. The primary key is the SHA-256 of the cookie token. 30-day
 sliding expiry; expired rows are deleted when they're next presented.

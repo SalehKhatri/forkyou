@@ -78,6 +78,7 @@ curl -H "Authorization: Bearer fy_…" http://localhost:4000/v1/me
 | `pnpm --filter @forkyou/api test:watch`         | API tests in watch mode                                       |
 | `pnpm --filter @forkyou/api db:studio`          | Drizzle Studio (browse the DB)                                |
 | `pnpm --filter @forkyou/api db:rebuild-rollups` | Recompute `daily_stats` from `coding_sessions`                |
+| `pnpm --filter @forkyou/api leaderboard list`   | Accounts hidden from the leaderboard (`hide`, `show` too)     |
 | `pnpm lint:fix`                                 | Format and autofix                                            |
 
 ## Tests

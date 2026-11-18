@@ -13,6 +13,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {me.leaderboardHidden && (
+        <Card className="border-accent/40 bg-accent-soft" aria-labelledby="hidden-title">
+          <h2 id="hidden-title" className="font-medium">
+            You're hidden from the leaderboard
+          </h2>
+          <p className="text-sm text-muted">
+            Your activity looked unusual, so your account isn't shown on the public leaderboard.
+            Your stats below are unaffected and keep updating. If you think this is a mistake, email{" "}
+            <a className="underline" href="mailto:saleh@forkyou.dev">
+              saleh@forkyou.dev
+            </a>
+            .
+          </p>
+        </Card>
+      )}
       {keys.length === 0 && (
         <Card className="flex flex-wrap items-center justify-between gap-4 border-accent/40 bg-accent-soft">
           <div>

@@ -106,6 +106,11 @@ export const meResponseSchema = z.object({
   avatarUrl: z.string().nullable(),
   showPresence: z.boolean(),
   showLanguage: z.boolean(),
+  /**
+   * The maintainer has hidden this account from the leaderboard (ADR 0007). Stats are unaffected.
+   * Defaults to false so clients still accept responses from servers that predate it.
+   */
+  leaderboardHidden: z.boolean().default(false),
   createdAt: z.iso.datetime(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;

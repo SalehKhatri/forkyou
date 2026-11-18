@@ -136,6 +136,21 @@ jq -s 'map(select(.msg=="ingest") | .rejected | to_entries[]) | group_by(.key)
 Targets to alert on are in [#17](https://github.com/SalehKhatri/forkyou/issues/17);
 [performance.md](performance.md) has the load-test numbers to compare against.
 
+## Moderation
+
+To keep an account off the public leaderboard ([ADR 0007](adr/0007-leaderboard-moderation.md)),
+run from a checkout with `DATABASE_URL` set to the production database:
+
+```bash
+pnpm --filter @forkyou/api leaderboard hide <username> --reason "24 h a day for a week"
+pnpm --filter @forkyou/api leaderboard list
+pnpm --filter @forkyou/api leaderboard show <username>    # undo
+```
+
+It takes effect within a minute. The user keeps their stats and sees a notice on their dashboard
+with the appeal address; the reason stays private. Check the `ingest` logs (rejection reasons) and
+the user's sessions before hiding anyone.
+
 ## Operations checklist
 
 - [x] Ruleset on `main` with required CI checks

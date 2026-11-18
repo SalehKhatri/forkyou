@@ -48,9 +48,11 @@ export async function getLeaderboard(
       select user_id, language, sum(seconds) as s from windowed group by 1, 2
     ),
     totals as (
-      select user_id, sum(s)::int as total
-      from per_language
-      group by user_id
+      -- Hidden accounts (ADR 0007) are dropped before the limit, so they can't take a slot.
+      select pl.user_id, sum(pl.s)::int as total
+      from per_language pl
+      join users u on u.id = pl.user_id and u.leaderboard_hidden_at is null
+      group by pl.user_id
       order by total desc
       limit ${LEADERBOARD_SIZE}
     ),
