@@ -99,6 +99,43 @@ runtime, for server-side fetches. Serve it over HTTPS: in production the session
   `pnpm --filter @forkyou/api db:rebuild-rollups`. It's safe while the API is running.
 - **Web**: _Promote_ the previous deployment in Vercel.
 
+## Logs
+
+In production (`NODE_ENV=production`) the API writes one JSON object per line to stdout; locally
+it prints short readable lines. Logs never contain API keys, cookies, request bodies, query strings,
+IP addresses, usernames or user ids.
+
+| `msg`                        | Fields                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| `request`                    | `method`, `route` (pattern, e.g. `/v1/keys/:id`), `status`, `ms`, `requestId` |
+| `ingest`                     | `accepted`, `duplicates`, `rejected` (count per reason), `requestId`          |
+| `unhandled error`            | `error` (stack trace), `requestId`; the client got a `500`                    |
+| `leaderboard refresh failed` | `range`, `error`; the stale leaderboard is still being served                 |
+
+`/health` isn't logged. A `500` response's request id matches its `unhandled error` line.
+
+With the log saved to `api.log` (most hosts can export or stream it), [`jq`](https://jqlang.org)
+answers the usual questions:
+
+```bash
+# Requests per route
+jq -r 'select(.msg=="request") | .route' api.log | sort | uniq -c | sort -rn
+
+# p95 latency per route (ms)
+jq -s 'map(select(.msg=="request")) | group_by(.route) | map({route: .[0].route, n: length,
+  p95: (map(.ms) | sort | .[(length * 0.95 | floor)])})' api.log
+
+# Share of 5xx responses
+jq -s 'map(select(.msg=="request")) | (map(select(.status >= 500)) | length) / length' api.log
+
+# Rejected sessions by reason
+jq -s 'map(select(.msg=="ingest") | .rejected | to_entries[]) | group_by(.key)
+  | map({reason: .[0].key, sessions: (map(.value) | add)})' api.log
+```
+
+Targets to alert on are in [#17](https://github.com/SalehKhatri/forkyou/issues/17);
+[performance.md](performance.md) has the load-test numbers to compare against.
+
 ## Operations checklist
 
 - [x] Ruleset on `main` with required CI checks
