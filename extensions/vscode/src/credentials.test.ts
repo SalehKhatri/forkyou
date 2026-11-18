@@ -9,6 +9,7 @@ const ME = {
   avatarUrl: null,
   showPresence: true,
   showLanguage: true,
+  leaderboardHidden: false,
   createdAt: "2026-11-16T10:00:00.000Z",
 };
 const OK = { ok: true, data: ME } as const;

@@ -113,7 +113,8 @@ Up to 100 users, most recent first. Respects each user's privacy settings. Cache
 
 ### `GET /v1/leaderboard?range=day|week|month` (public)
 
-Rolling 24 h / 7 d / 30 d windows. Top 100. Cached 30 s.
+Rolling 24 h / 7 d / 30 d windows. Top 100. Cached 30 s. Accounts hidden by the maintainer
+(ADR 0007) are left out.
 
 ```json
 {
@@ -143,9 +144,14 @@ The current user. Extensions use it to check a key during setup.
   "avatarUrl": "…",
   "showPresence": true,
   "showLanguage": true,
+  "leaderboardHidden": false,
   "createdAt": "…"
 }
 ```
+
+`leaderboardHidden` is `true` when the maintainer has kept the account off the public leaderboard
+([ADR 0007](adr/0007-leaderboard-moderation.md)); stats and uploads are unaffected. Added after
+the first 2.0 release, so clients should treat a missing value as `false`.
 
 ### `PATCH /v1/me/settings` (cookie)
 

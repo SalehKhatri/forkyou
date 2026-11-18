@@ -30,6 +30,7 @@ const toMe = (u: AppEnv["Variables"]["user"]): MeResponse => ({
   avatarUrl: u.avatarUrl,
   showPresence: u.showPresence,
   showLanguage: u.showLanguage,
+  leaderboardHidden: u.leaderboardHiddenAt !== null,
   createdAt: u.createdAt.toISOString(),
 });
 

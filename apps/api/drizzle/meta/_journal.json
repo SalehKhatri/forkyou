@@ -22,6 +22,13 @@
       "when": 1794951270498,
       "tag": "0002_backfill_daily_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795028524969,
+      "tag": "0003_leaderboard_hidden",
+      "breakpoints": true
     }
   ]
 }

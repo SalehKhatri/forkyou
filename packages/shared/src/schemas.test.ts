@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { LIMITS } from "./constants.js";
-import { presenceInputSchema, sessionBatchSchema, sessionInputSchema } from "./schemas.js";
+import {
+  meResponseSchema,
+  presenceInputSchema,
+  sessionBatchSchema,
+  sessionInputSchema,
+} from "./schemas.js";
 
 const valid = {
   id: "0b3f9b9e-6f43-4d6c-9a52-2f1d6f0c8a11",
@@ -48,5 +53,25 @@ describe("sessionBatchSchema", () => {
 describe("presenceInputSchema", () => {
   it("accepts an offline signal with no language", () => {
     expect(presenceInputSchema.parse({ online: false })).toEqual({ online: false });
+  });
+});
+
+describe("meResponseSchema", () => {
+  const me = {
+    id: "8f9a3c1e-2b4d-4e6f-8a1b-3c5d7e9f0a2b",
+    username: "ada",
+    name: null,
+    avatarUrl: null,
+    showPresence: true,
+    showLanguage: true,
+    createdAt: "2026-11-16T10:00:00.000Z",
+  };
+
+  it("accepts responses from servers that predate leaderboardHidden", () => {
+    expect(meResponseSchema.parse(me).leaderboardHidden).toBe(false);
+  });
+
+  it("keeps leaderboardHidden when the server sends it", () => {
+    expect(meResponseSchema.parse({ ...me, leaderboardHidden: true }).leaderboardHidden).toBe(true);
   });
 });

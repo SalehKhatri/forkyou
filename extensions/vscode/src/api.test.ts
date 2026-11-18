@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ApiClient } from "./api.js";
 
+/** A /v1/me response from a server that predates `leaderboardHidden`. */
 const ME = {
   id: "8f9a3c1e-2b4d-4e6f-8a1b-3c5d7e9f0a2b",
   username: "ada",
@@ -36,7 +37,8 @@ describe("ApiClient.me", () => {
 
     const result = await api.me("fy_example");
 
-    expect(result).toEqual({ ok: true, data: ME });
+    // Fields added later get their defaults, so older servers keep working.
+    expect(result).toEqual({ ok: true, data: { ...ME, leaderboardHidden: false } });
     expect(calls).toHaveLength(1);
     expect(calls[0]?.url).toBe("https://forkyou.example.com/api/v1/me");
     expect(calls[0]?.init.method).toBe("GET");
