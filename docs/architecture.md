@@ -93,8 +93,10 @@ sessions can't both pass the overlap check.
 
 - **Stats** (`/v1/me/stats`): aggregated on request from `coding_sessions` for the signed-in user,
   bucketed by day in the viewer's time zone (sent by the browser). Projects are private to the owner.
-- **Leaderboard** (`/v1/leaderboard`): rolling 1/7/30-day windows, top 100, cached in-process for
-  30 s and by the web app for 30 s.
+- **Leaderboard** (`/v1/leaderboard`): rolling 1/7/30-day windows, top 100. The query is the most
+  expensive read, so requests never wait for it: the API caches each range in-process for 30 s,
+  serves the stale copy while one background refresh runs, and warms all ranges at startup. The
+  web app caches it for another 30 s. Measurements: [performance.md](performance.md).
 
 ## Security summary
 
