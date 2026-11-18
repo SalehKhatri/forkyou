@@ -55,8 +55,8 @@ on each login. If a username moves to a different GitHub account, the stale row 
 `<username>~<github_id>` until that person logs in again. Presence lives here (`last_seen_at`,
 `offline_at`, `presence_language`, `presence_editor`) because it's a single small row per user.
 `leaderboard_hidden_at` and `leaderboard_hidden_reason` are set by the maintainer to keep an account
-off the leaderboard ([ADR 0007](adr/0007-leaderboard-moderation.md)); the reason is never returned
-by the API.
+off the leaderboard ([ADR 0007](adr/0007-leaderboard-moderation.md)); the reason is in the user's data export and, if the maintainer chooses
+(`leaderboard_hidden_reason_visible`), on their dashboard ([ADR 0008](adr/0008-moderation-reason-visibility.md)).
 
 **`auth_sessions`**: browser logins. The primary key is the SHA-256 of the cookie token. 30-day
 sliding expiry; expired rows are deleted when they're next presented.

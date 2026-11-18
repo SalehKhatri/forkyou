@@ -140,7 +140,7 @@ describe("GET /v1/me/export", () => {
     ]);
   });
 
-  it("never includes key hashes, other users or the private moderation reason", async () => {
+  it("never includes key hashes or other users", async () => {
     const { user, cookie } = await createUserWithSession(db, "ada");
     await createApiKey(db, user.id, "laptop");
     const { user: linus } = await createUserWithKey(db, "linus");
@@ -153,8 +153,20 @@ describe("GET /v1/me/export", () => {
 
     expect(text).not.toContain(stored?.keyHash ?? "missing");
     expect(text).not.toContain("linus");
-    expect(text).not.toContain("secret maintainer note");
-    expect(JSON.parse(text).user.leaderboardHidden).toBe(true);
+  });
+
+  it("includes the moderation reason even when it isn't shown on the dashboard", async () => {
+    const { cookie } = await createUserWithSession(db, "ada");
+    await hideFromLeaderboard(db, "ada", "scripted uploads", NOW);
+
+    const body = accountExportSchema.parse(
+      await (await makeApp(db).request("/v1/me/export", { headers: cookie })).json(),
+    );
+
+    expect(body.user).toMatchObject({
+      leaderboardHidden: true,
+      leaderboardHiddenReason: "scripted uploads",
+    });
   });
 
   it("needs a signed-in browser session", async () => {

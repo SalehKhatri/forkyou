@@ -16,8 +16,9 @@ export async function deleteAccount(db: Db, userId: string): Promise<void> {
 }
 
 /**
- * Everything ForkYou stores about a user, for them to download. Leaves out secrets (API key and
- * session token hashes) and the maintainer's private moderation note (ADR 0007).
+ * Everything ForkYou stores about a user, for them to download, including the moderation reason
+ * even if it isn't shown on their dashboard (ADR 0008). Leaves out secrets: API key and session
+ * token hashes.
  */
 export async function exportAccount(
   db: Db,
@@ -50,6 +51,7 @@ export async function exportAccount(
     exportedAt: now.toISOString(),
     user: {
       ...me,
+      leaderboardHiddenReason: user.leaderboardHiddenAt ? user.leaderboardHiddenReason : null,
       githubId: user.githubId,
       lastSeenAt: iso(user.lastSeenAt),
       presenceLanguage: user.presenceLanguage,

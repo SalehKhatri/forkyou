@@ -34,6 +34,10 @@ const toMe = (u: AppEnv["Variables"]["user"]): MeResponse => ({
   showPresence: u.showPresence,
   showLanguage: u.showLanguage,
   leaderboardHidden: u.leaderboardHiddenAt !== null,
+  leaderboardHiddenReason:
+    u.leaderboardHiddenAt !== null && u.leaderboardHiddenReasonVisible
+      ? u.leaderboardHiddenReason
+      : null,
   createdAt: u.createdAt.toISOString(),
 });
 

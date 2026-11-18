@@ -142,13 +142,14 @@ To keep an account off the public leaderboard ([ADR 0007](adr/0007-leaderboard-m
 run from a checkout with `DATABASE_URL` set to the production database:
 
 ```bash
-pnpm --filter @forkyou/api leaderboard hide <username> --reason "24 h a day for a week"
+pnpm --filter @forkyou/api leaderboard hide <username> --reason "24 h a day for a week" --show-reason
 pnpm --filter @forkyou/api leaderboard list
 pnpm --filter @forkyou/api leaderboard show <username>    # undo
 ```
 
 It takes effect within a minute. The user keeps their stats and sees a notice on their dashboard
-with the appeal address; the reason stays private. Check the `ingest` logs (rejection reasons) and
+with the appeal address. Add `--show-reason` to show them the reason there too; it's in their data
+export either way, so write it for them to read (ADR 0008). Check the `ingest` logs (rejection reasons) and
 the user's sessions before hiding anyone.
 
 ## Operations checklist

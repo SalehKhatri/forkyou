@@ -67,8 +67,11 @@ describe("meResponseSchema", () => {
     createdAt: "2026-11-16T10:00:00.000Z",
   };
 
-  it("accepts responses from servers that predate leaderboardHidden", () => {
-    expect(meResponseSchema.parse(me).leaderboardHidden).toBe(false);
+  it("accepts responses from servers that predate the moderation fields", () => {
+    expect(meResponseSchema.parse(me)).toMatchObject({
+      leaderboardHidden: false,
+      leaderboardHiddenReason: null,
+    });
   });
 
   it("keeps leaderboardHidden when the server sends it", () => {

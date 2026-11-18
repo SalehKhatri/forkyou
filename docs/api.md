@@ -146,13 +146,16 @@ The current user. Extensions use it to check a key during setup.
   "showPresence": true,
   "showLanguage": true,
   "leaderboardHidden": false,
+  "leaderboardHiddenReason": null,
   "createdAt": "…"
 }
 ```
 
 `leaderboardHidden` is `true` when the maintainer has kept the account off the public leaderboard
-([ADR 0007](adr/0007-leaderboard-moderation.md)); stats and uploads are unaffected. Added after
-the first 2.0 release, so clients should treat a missing value as `false`.
+([ADR 0007](adr/0007-leaderboard-moderation.md)); stats and uploads are unaffected.
+`leaderboardHiddenReason` is the reason if the maintainer chose to show it, otherwise `null`
+([ADR 0008](adr/0008-moderation-reason-visibility.md)). Both were added after the first 2.0
+release, so clients should treat missing values as `false` and `null`.
 
 ### `PATCH /v1/me/settings` (cookie)
 
@@ -202,8 +205,9 @@ Everything ForkYou stores about you, as a JSON file download
 }
 ```
 
-`user` is the `/v1/me` response plus `githubId` and the latest presence. Never included: API key and
-login token hashes, and the maintainer's private moderation note (ADR 0007). Shape:
+`user` is the `/v1/me` response plus `githubId` and the latest presence, and
+`leaderboardHiddenReason` is always filled in when the account is hidden, even if it isn't shown on
+the dashboard (ADR 0008). Never included: API key and login token hashes. Shape:
 `accountExportSchema` in `packages/shared`.
 
 ### API keys (cookie)

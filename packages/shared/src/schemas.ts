@@ -111,6 +111,11 @@ export const meResponseSchema = z.object({
    * Defaults to false so clients still accept responses from servers that predate it.
    */
   leaderboardHidden: z.boolean().default(false),
+  /**
+   * Why, if the maintainer chose to show it (ADR 0008); otherwise null. The data export always
+   * includes the reason. Defaults to null so clients accept servers that predate it.
+   */
+  leaderboardHiddenReason: z.string().nullable().default(null),
   createdAt: z.iso.datetime(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;

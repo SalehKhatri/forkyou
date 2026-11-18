@@ -34,10 +34,14 @@ export const users = pgTable("users", {
   presenceLanguage: text("presence_language"),
   presenceEditor: text("presence_editor"),
 
-  // Moderation (ADR 0007): set by the maintainer to keep an account off the leaderboard. The
-  // reason is a private note; the user only sees that they're hidden.
+  // Moderation (ADR 0007, 0008): set by the maintainer to keep an account off the leaderboard.
+  // The reason is always in the user's data export; it's shown on their dashboard only if the
+  // maintainer chose to.
   leaderboardHiddenAt: timestamp("leaderboard_hidden_at", { withTimezone: true }),
   leaderboardHiddenReason: text("leaderboard_hidden_reason"),
+  leaderboardHiddenReasonVisible: boolean("leaderboard_hidden_reason_visible")
+    .notNull()
+    .default(false),
 
   ...timestamps,
   updatedAt: timestamp("updated_at", { withTimezone: true })

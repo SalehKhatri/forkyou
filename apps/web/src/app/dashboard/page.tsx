@@ -26,6 +26,11 @@ export default async function DashboardPage() {
             </a>
             .
           </p>
+          {me.leaderboardHiddenReason && (
+            <p className="mt-2 text-sm">
+              <span className="font-medium">Reason:</span> {me.leaderboardHiddenReason}
+            </p>
+          )}
         </Card>
       )}
       {keys.length === 0 && (

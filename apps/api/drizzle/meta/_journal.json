@@ -29,6 +29,13 @@
       "when": 1795028524969,
       "tag": "0003_leaderboard_hidden",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795029944027,
+      "tag": "0004_leaderboard_hidden_reason_visible",
+      "breakpoints": true
     }
   ]
 }
