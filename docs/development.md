@@ -70,14 +70,15 @@ curl -H "Authorization: Bearer fy_…" http://localhost:4000/v1/me
 
 ## Everyday commands
 
-| Command                                 | Notes                                                         |
-| --------------------------------------- | ------------------------------------------------------------- |
-| `pnpm dev`                              | Turbo builds `packages/shared` first, then watches everything |
-| `pnpm check`                            | What CI runs. Run it before pushing.                          |
-| `pnpm test`                             | All packages. API tests need `TEST_DATABASE_URL`.             |
-| `pnpm --filter @forkyou/api test:watch` | API tests in watch mode                                       |
-| `pnpm --filter @forkyou/api db:studio`  | Drizzle Studio (browse the DB)                                |
-| `pnpm lint:fix`                         | Format and autofix                                            |
+| Command                                         | Notes                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `pnpm dev`                                      | Turbo builds `packages/shared` first, then watches everything |
+| `pnpm check`                                    | What CI runs. Run it before pushing.                          |
+| `pnpm test`                                     | All packages. API tests need `TEST_DATABASE_URL`.             |
+| `pnpm --filter @forkyou/api test:watch`         | API tests in watch mode                                       |
+| `pnpm --filter @forkyou/api db:studio`          | Drizzle Studio (browse the DB)                                |
+| `pnpm --filter @forkyou/api db:rebuild-rollups` | Recompute `daily_stats` from `coding_sessions`                |
+| `pnpm lint:fix`                                 | Format and autofix                                            |
 
 ## Tests
 

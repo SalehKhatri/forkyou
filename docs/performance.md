@@ -119,3 +119,78 @@ background refreshes, which no request waits for.
 The same load that collapsed the baseline now runs with every endpoint under 52 ms at p99 and both
 containers averaging under a fifth of a CPU. The leaderboard query still costs ~550 ms each time it
 refreshes and grows with the number of sessions; Layer 2 addresses that.
+
+## 2026-11-17 · Layer 2: daily_stats rollup ([ADR 0006](adr/0006-daily-stats-rollup.md))
+
+The leaderboard reads whole days from `daily_stats` (seconds per user, UTC day and language) and
+only the window's partial first day from raw sessions. The backfill migration turned 2.37M
+sessions into 336k rollup rows (42 MB) in seconds; the rollup's total matched the sessions' total
+exactly.
+
+### Query cost (uncached, best of 5, measured in Postgres)
+
+| Range | Before (raw sessions) | After (rollup) |
+| ----- | --------------------- | -------------- |
+| Day   | 15 ms                 | 3.5 ms         |
+| Week  | 400 ms                | 19 ms          |
+| Month | 550 ms                | 49 ms          |
+
+### 800 clients, 10 minutes
+
+13,805 requests, no errors.
+
+| Endpoint                | n     | p50     | p95    | p99   | max    |
+| ----------------------- | ----- | ------- | ------ | ----- | ------ |
+| POST /v1/presence       | 7,999 | 7.6 ms  | 12 ms  | 19 ms | 123 ms |
+| POST /v1/sessions       | 2,004 | 12.2 ms | 18 ms  | 29 ms | 139 ms |
+| GET /v1/me/stats        | 2,004 | 5.5 ms  | 9 ms   | 12 ms | 88 ms  |
+| GET /v1/presence/online | 600   | 6.2 ms  | 10 ms  | 21 ms | 80 ms  |
+| GET /v1/leaderboard     | 1,198 | 3.5 ms  | 5.6 ms | 10 ms | 62 ms  |
+
+| Container | CPU avg | CPU peak | Memory         |
+| --------- | ------- | -------- | -------------- |
+| API       | 8%      | 17%      | 152 MB of 1 GB |
+| Postgres  | 5%      | 12%      | 344 MB of 2 GB |
+
+### 5× (≈ 4,000 concurrent users), 5 minutes
+
+34,428 requests (≈ 115 per second), no errors.
+
+| Endpoint                | n      | p50    | p95    | p99    | max    |
+| ----------------------- | ------ | ------ | ------ | ------ | ------ |
+| POST /v1/presence       | 19,983 | 5.2 ms | 13 ms  | 20 ms  | 312 ms |
+| POST /v1/sessions       | 4,987  | 6.9 ms | 14 ms  | 20 ms  | 155 ms |
+| GET /v1/me/stats        | 4,987  | 3.0 ms | 6 ms   | 9 ms   | 46 ms  |
+| GET /v1/presence/online | 1,494  | 3.4 ms | 7 ms   | 10 ms  | 151 ms |
+| GET /v1/leaderboard     | 2,977  | 1.7 ms | 4.1 ms | 6.7 ms | 108 ms |
+
+| Container | CPU avg | CPU peak | Memory         |
+| --------- | ------- | -------- | -------------- |
+| API       | 16%     | 26%      | 157 MB of 1 GB |
+| Postgres  | 14%     | 20%      | 355 MB of 2 GB |
+
+The Postgres CPU peaks from leaderboard refreshes are gone (53% → 12% at 800 clients, 44% → 20%
+at 5×). The extra rollup write per upload doesn't show: upload p99 is 20–29 ms.
+
+## Summary
+
+| Run                    | Requests | Errors | Worst p99 (endpoint)       | Postgres CPU avg / peak |
+| ---------------------- | -------- | ------ | -------------------------- | ----------------------- |
+| Baseline · 800 clients | 13,796   | 0      | 622 ms (leaderboard)       | 7% / 48%                |
+| Baseline · 5×          | 1,213    | 0      | minutes (all, collapse)    | 99.7% / 107%            |
+| Layer 1 · 800 clients  | 13,842   | 0      | 37 ms (sessions)           | 9% / 53%                |
+| Layer 1 · 5×           | 34,444   | 0      | 52 ms (sessions)           | 15% / 44%               |
+| Layer 2 · 800 clients  | 13,805   | 0      | 29 ms (sessions)           | 5% / 12%                |
+| Layer 2 · 5×           | 34,428   | 0      | 20 ms (sessions, presence) | 14% / 20%               |
+
+**Conclusions:**
+
+- A small VPS (2 vCPU, ~3 GB for the API and Postgres) handles about 4,000 people coding at once with
+  every endpoint under 20 ms at p99 and both processes under a fifth of a CPU on average. 800 people
+  (our planning number) use well under 10%.
+- The leaderboard was the only bottleneck. Layer 1 stops requests from waiting for it and stops
+  concurrent refreshes from piling up; Layer 2 makes the refresh itself cheap and keeps it from
+  growing with session history.
+- Not yet tested: more than 2,000 distinct users (the seed's limit), months of history, and a real
+  network between the web app, the API and the database. Live measurements are tracked in
+  [#17](https://github.com/SalehKhatri/forkyou/issues/17).

@@ -77,7 +77,8 @@ Run a single test file: `pnpm --filter @forkyou/api exec vitest run test/ingest.
 - Invariants the code relies on (see `docs/data-model.md`): a user's coding sessions never
   overlap; `coding_sessions.id` is client-generated and globally unique; one user per GitHub id.
 - Ingestion takes a per-user advisory lock. Keep any new write path to `coding_sessions` inside
-  `ingestSessions` so the overlap guarantee holds.
+  `ingestSessions` so the overlap guarantee holds and the `daily_stats` rollup stays equal to the
+  sessions (ADR 0006). If sessions are ever changed outside it, run `db:rebuild-rollups`.
 
 ### Web (`apps/web`)
 
@@ -118,6 +119,7 @@ Run a single test file: `pnpm --filter @forkyou/api exec vitest run test/ingest.
   without an ADR. Keeping scope small is a goal.
 - Don't reintroduce shared-secret request signing in extensions. Secrets shipped in a client are
   public (ADR 0002).
-- Don't add Redis, queues or rollup tables until there's a measured need (ADR 0003).
+- Don't add Redis, queues or more rollup tables until there's a measured need (ADR 0003, ADR 0006).
+  Record the measurement in `docs/performance.md`.
 - Don't commit `.env` files, real API keys or production data.
 - Don't upgrade TypeScript to 7.x yet: Next.js and tooling still need the 6.x JS API.

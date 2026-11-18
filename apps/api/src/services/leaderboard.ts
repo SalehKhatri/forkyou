@@ -26,25 +26,39 @@ export async function getLeaderboard(
 ): Promise<LeaderboardResponse> {
   const since = new Date(now.getTime() - days(RANGE_DAYS[range])).toISOString();
 
+  // Whole UTC days come from the daily_stats rollup; only the partial day the window starts in
+  // is read from raw sessions. Same totals as summing every session since `since`, but the work
+  // grows with users × days instead of with sessions (ADR 0006, docs/performance.md).
   const rows = await db.execute<Row>(sql`
-    with totals as (
-      select user_id, sum(duration_seconds)::int as total
-      from coding_sessions
-      where started_at >= ${since}::timestamptz
+    with bounds as (
+      select ${since}::timestamptz as since,
+             (${since}::timestamptz at time zone 'UTC')::date as first_day
+    ),
+    windowed as (
+      select ds.user_id, ds.language, ds.seconds::bigint as seconds
+      from daily_stats ds, bounds b
+      where ds.day > b.first_day
+      union all
+      select cs.user_id, cs.language, cs.duration_seconds::bigint
+      from coding_sessions cs, bounds b
+      where cs.started_at >= b.since
+        and cs.started_at < (b.first_day + 1)::timestamp at time zone 'UTC'
+    ),
+    per_language as (
+      select user_id, language, sum(seconds) as s from windowed group by 1, 2
+    ),
+    totals as (
+      select user_id, sum(s)::int as total
+      from per_language
       group by user_id
       order by total desc
       limit ${LEADERBOARD_SIZE}
     ),
     langs as (
-      select distinct on (user_id) user_id, language
-      from (
-        select cs.user_id, cs.language, sum(cs.duration_seconds) as s
-        from coding_sessions cs
-        join totals t on t.user_id = cs.user_id
-        where cs.started_at >= ${since}::timestamptz
-        group by 1, 2
-      ) per_language
-      order by user_id, s desc, language
+      select distinct on (pl.user_id) pl.user_id, pl.language
+      from per_language pl
+      join totals t on t.user_id = pl.user_id
+      order by pl.user_id, pl.s desc, pl.language
     )
     select u.username, u.avatar_url, t.total, l.language as top_language,
            u.show_presence, u.last_seen_at, u.offline_at

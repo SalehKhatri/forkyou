@@ -38,6 +38,14 @@ cross join lateral (
 ) as s
 where u.username like 'load%';
 
+-- Sessions were inserted directly rather than through the API, so fill the rollup the way the
+-- backfill migration does (ADR 0006).
+insert into daily_stats (user_id, day, language, seconds)
+select user_id, (started_at at time zone 'UTC')::date, language, sum(duration_seconds)::int
+from coding_sessions
+where user_id in (select id from users where username like 'load%')
+group by 1, 2, 3;
+
 commit;
 
 vacuum analyze;
