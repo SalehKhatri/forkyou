@@ -94,6 +94,35 @@ describe("GET /v1/me/stats", () => {
     expect(stats.projects).toEqual([{ project: "api", seconds: 600 }]);
   });
 
+  it("leaves out of every breakdown a session from before the first day in the series", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    // NOW is Nov 16 12:00 UTC, so the 7-day series starts Nov 10. This session (Nov 9,
+    // 14:50–15:00 UTC) is less than 7×24h ago but on a day the series doesn't show.
+    await seed(
+      user.id,
+      session({
+        endsMinutesAgo: 6 * 24 * 60 + 21 * 60,
+        minutes: 10,
+        language: "rust",
+        project: "old",
+      }),
+      session({ endsMinutesAgo: 60, minutes: 10, language: "go", project: "api" }),
+    );
+
+    const res = await makeApp(db).request("/v1/me/stats?range=7d", { headers: cookie });
+    const stats = (await res.json()) as {
+      totalSeconds: number;
+      days: { day: string }[];
+      languages: unknown[];
+      projects: unknown[];
+    };
+
+    expect(stats.days[0]?.day).toBe("2026-11-10");
+    expect(stats.totalSeconds).toBe(600);
+    expect(stats.languages).toEqual([{ language: "go", seconds: 600 }]);
+    expect(stats.projects).toEqual([{ project: "api", seconds: 600 }]);
+  });
+
   it("buckets days in the requested time zone", async () => {
     const { user, cookie } = await createUserWithSession(db);
     // 00:30–00:40 UTC on Nov 16 is 19:30–19:40 on Nov 15 in New York.

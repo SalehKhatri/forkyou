@@ -23,9 +23,13 @@ export async function getUserStats(
   now: Date = new Date(),
 ): Promise<StatsResponse> {
   const n = RANGE_DAYS[range];
-  // Start from local midnight N-1 days ago, approximated by going back N full days.
+  // Every figure covers the same calendar days as the series: today and the N-1 before it, in
+  // `tz`. `since` (N×24h back) is a looser bound that lets the start-time index narrow the scan.
+  const firstDay = dayIn(new Date(now.getTime() - days(n - 1)), tz);
   const since = new Date(now.getTime() - days(n)).toISOString();
-  const base = sql`from coding_sessions where user_id = ${userId} and started_at >= ${since}::timestamptz`;
+  const base = sql`from coding_sessions where user_id = ${userId}
+    and started_at >= ${since}::timestamptz
+    and (started_at at time zone ${tz})::date >= ${firstDay}::date`;
 
   const [dayRows, languageRows, projectRows] = await Promise.all([
     db.execute<{ day: string; seconds: number }>(sql`
