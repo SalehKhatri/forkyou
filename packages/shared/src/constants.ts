@@ -29,3 +29,12 @@ export const LEADERBOARD_RANGES = ["day", "week", "month"] as const;
 export type LeaderboardRange = (typeof LEADERBOARD_RANGES)[number];
 
 export const LEADERBOARD_SIZE = 100;
+
+/**
+ * Staff roles, least trusted first (ADR 0009). Admins and moderators are appointed; super admins
+ * come from the server's configuration and can't be appointed.
+ */
+export const STAFF_ROLES = ["moderator", "admin", "super_admin"] as const;
+export type StaffRole = (typeof STAFF_ROLES)[number];
+export const APPOINTABLE_STAFF_ROLES = ["moderator", "admin"] as const;
+export type AppointableStaffRole = (typeof APPOINTABLE_STAFF_ROLES)[number];

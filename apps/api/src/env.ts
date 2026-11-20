@@ -8,6 +8,23 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string().default(""),
   GITHUB_CLIENT_SECRET: z.string().default(""),
   GITHUB_REDIRECT_URI: z.url().default("http://localhost:3000/api/auth/github/callback"),
+  /**
+   * GitHub ids (numbers, not usernames) of the super admins, comma-separated (ADR 0009). Empty
+   * means nobody is a super admin, so no staff can be appointed.
+   */
+  SUPER_ADMIN_GITHUB_IDS: z
+    .string()
+    .default("")
+    .refine((v) => /^\s*(\d+\s*(,\s*\d+\s*)*)?$/.test(v), {
+      message: "Expected comma-separated GitHub ids, e.g. 12345,67890",
+    })
+    .transform((v) =>
+      v
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .map(Number),
+    ),
 });
 
 export type Env = z.infer<typeof envSchema>;

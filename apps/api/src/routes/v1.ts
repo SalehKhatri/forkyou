@@ -16,7 +16,9 @@ import { deleteCookie } from "hono/cookie";
 import { z } from "zod";
 import type { AppEnv } from "../context.js";
 import { users } from "../db/schema.js";
+import type { Env } from "../env.js";
 import { AppError, errorBody, notFound } from "../lib/errors.js";
+import { staffRoleOf } from "../lib/staff.js";
 import { isValidTimeZone } from "../lib/time.js";
 import { validate } from "../lib/validate.js";
 import { requireAuth, sessionCookieName } from "../middleware/auth.js";
@@ -27,7 +29,7 @@ import { getLeaderboard } from "../services/leaderboard.js";
 import { listOnlineUsers, recordPresence } from "../services/presence.js";
 import { getTodaySeconds, getUserStats } from "../services/stats.js";
 
-const toMe = (u: AppEnv["Variables"]["user"]): MeResponse => ({
+const toMe = (u: AppEnv["Variables"]["user"], env: Env): MeResponse => ({
   id: u.id,
   username: u.username,
   name: u.name,
@@ -39,6 +41,7 @@ const toMe = (u: AppEnv["Variables"]["user"]): MeResponse => ({
     u.leaderboardHiddenAt !== null && u.leaderboardHiddenReasonVisible
       ? u.leaderboardHiddenReason
       : null,
+  staffRole: staffRoleOf(u, env),
   createdAt: u.createdAt.toISOString(),
 });
 
@@ -75,7 +78,7 @@ export const v1Routes = new Hono<AppEnv>()
   })
 
   // ------------------------------------------------------------ signed-in user
-  .get("/me", requireAuth("apiKey", "session"), (c) => c.json(toMe(c.var.user)))
+  .get("/me", requireAuth("apiKey", "session"), (c) => c.json(toMe(c.var.user, c.var.deps.env)))
   // Web only: an API key (an editor, a script) can't delete the account or download its data.
   .delete("/me", requireAuth("session"), validate("json", accountDeleteSchema), async (c) => {
     const { db, env, leaderboardCache } = c.var.deps;
@@ -90,7 +93,7 @@ export const v1Routes = new Hono<AppEnv>()
   .get("/me/export", requireAuth("session"), async (c) => {
     const { db, now } = c.var.deps;
     const at = now();
-    const data = await exportAccount(db, c.var.user, toMe(c.var.user), at);
+    const data = await exportAccount(db, c.var.user, toMe(c.var.user, c.var.deps.env), at);
     const filename = `forkyou-${c.var.user.username}-${at.toISOString().slice(0, 10)}.json`;
     c.header("Content-Disposition", `attachment; filename="${filename}"`);
     c.header("Cache-Control", "no-store");
@@ -109,7 +112,7 @@ export const v1Routes = new Hono<AppEnv>()
         .returning();
       if (!updated) throw notFound("User");
       c.var.deps.leaderboardCache.clear();
-      return c.json(toMe(updated));
+      return c.json(toMe(updated, c.var.deps.env));
     },
   )
   .get(

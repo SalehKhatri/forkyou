@@ -55,6 +55,7 @@ give the host a GHCR pull token). Health check path: `/health`. Port: `4000`.
 | `WEB_URL`                                   | `https://forkyou.dev`                          |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | production OAuth app                           |
 | `GITHUB_REDIRECT_URI`                       | `https://forkyou.dev/api/auth/github/callback` |
+| `SUPER_ADMIN_GITHUB_IDS`                    | the maintainer's GitHub id (see Staff below)   |
 
 Then copy the host's **deploy hook URL** into the GitHub secret `API_DEPLOY_HOOK_URL` (repo →
 Settings → Environments → `production`). Without it, the workflow still publishes the image and
@@ -137,6 +138,28 @@ jq -s 'map(select(.msg=="ingest") | .rejected | to_entries[]) | group_by(.key)
 
 Targets to alert on are in [#17](https://github.com/SalehKhatri/forkyou/issues/17);
 [performance.md](performance.md) has the load-test numbers to compare against.
+
+## Staff
+
+Staff roles are described in [ADR 0009](adr/0009-staff-roles.md). Super admins come from
+`SUPER_ADMIN_GITHUB_IDS`: a comma-separated list of GitHub **ids**, not usernames, because a
+username can be renamed and claimed by someone else. To find an id:
+
+```bash
+curl -s https://api.github.com/users/<username> | grep '"id"'
+```
+
+Changing the list takes a restart. A super admin appoints admins and moderators from a signed-in
+browser session; until the staff pages exist, that means calling the API with the session cookie,
+for example:
+
+```bash
+curl -X PUT https://forkyou.dev/api/v1/staff/members/<username> \
+  -H 'Content-Type: application/json' -H 'Cookie: __Host-fy_session=<your session cookie>' \
+  -d '{"role":"moderator"}'
+```
+
+The person must have signed in once. Every appointment and removal is recorded in `admin_actions`.
 
 ## Moderation
 

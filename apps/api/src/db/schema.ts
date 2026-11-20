@@ -6,6 +6,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -17,38 +18,46 @@ const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 };
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  githubId: bigint("github_id", { mode: "number" }).notNull().unique(),
-  username: text("username").notNull().unique(),
-  name: text("name"),
-  avatarUrl: text("avatar_url"),
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    githubId: bigint("github_id", { mode: "number" }).notNull().unique(),
+    username: text("username").notNull().unique(),
+    name: text("name"),
+    avatarUrl: text("avatar_url"),
 
-  // Privacy settings
-  showPresence: boolean("show_presence").notNull().default(true),
-  showLanguage: boolean("show_language").notNull().default(true),
+    // Privacy settings
+    showPresence: boolean("show_presence").notNull().default(true),
+    showLanguage: boolean("show_language").notNull().default(true),
 
-  // Presence: online = last_seen_at within the window AND not signed off since.
-  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
-  offlineAt: timestamp("offline_at", { withTimezone: true }),
-  presenceLanguage: text("presence_language"),
-  presenceEditor: text("presence_editor"),
+    // Presence: online = last_seen_at within the window AND not signed off since.
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    offlineAt: timestamp("offline_at", { withTimezone: true }),
+    presenceLanguage: text("presence_language"),
+    presenceEditor: text("presence_editor"),
 
-  // Moderation (ADR 0007, 0008): set by the maintainer to keep an account off the leaderboard.
-  // The reason is always in the user's data export; it's shown on their dashboard only if the
-  // maintainer chose to.
-  leaderboardHiddenAt: timestamp("leaderboard_hidden_at", { withTimezone: true }),
-  leaderboardHiddenReason: text("leaderboard_hidden_reason"),
-  leaderboardHiddenReasonVisible: boolean("leaderboard_hidden_reason_visible")
-    .notNull()
-    .default(false),
+    // Moderation (ADR 0007, 0008): set by the maintainer to keep an account off the leaderboard.
+    // The reason is always in the user's data export; it's shown on their dashboard only if the
+    // maintainer chose to.
+    leaderboardHiddenAt: timestamp("leaderboard_hidden_at", { withTimezone: true }),
+    leaderboardHiddenReason: text("leaderboard_hidden_reason"),
+    leaderboardHiddenReasonVisible: boolean("leaderboard_hidden_reason_visible")
+      .notNull()
+      .default(false),
 
-  ...timestamps,
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+    // Staff (ADR 0009): appointed by a super admin. Super admins aren't stored; they come from
+    // SUPER_ADMIN_GITHUB_IDS, which overrides this column.
+    staffRole: text("staff_role", { enum: ["moderator", "admin"] }),
+
+    ...timestamps,
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [check("users_staff_role_valid", sql`${t.staffRole} in ('moderator', 'admin')`)],
+);
 
 /** Browser login sessions. Only the SHA-256 of the cookie token is stored. */
 export const authSessions = pgTable(
@@ -129,6 +138,24 @@ export const dailyStats = pgTable(
     primaryKey({ columns: [t.userId, t.day, t.language] }),
     index("daily_stats_day_idx").on(t.day),
   ],
+);
+
+/**
+ * Every staff write (ADR 0009): who did what to whom, and the details (a role, a reason). The user
+ * ids become null when either account is deleted, so the record stays but no longer says who: an
+ * account deletion removes everything that identifies the user.
+ */
+export const adminActions = pgTable(
+  "admin_actions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    targetId: uuid("target_id").references(() => users.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    details: jsonb("details").$type<Record<string, unknown>>().notNull().default({}),
+    ...timestamps,
+  },
+  (t) => [index("admin_actions_created_idx").on(t.createdAt)],
 );
 
 export type User = typeof users.$inferSelect;

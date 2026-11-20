@@ -8,6 +8,7 @@ import { AppError, errorBody } from "./lib/errors.js";
 import { authRoutes } from "./routes/auth.js";
 import { healthRoutes } from "./routes/health.js";
 import { legacyRoutes } from "./routes/legacy.js";
+import { staffRoutes } from "./routes/staff.js";
 import { v1Routes } from "./routes/v1.js";
 
 /**
@@ -40,6 +41,7 @@ export function createApp(deps: Deps) {
 
   app.route("/", healthRoutes);
   app.route("/auth", authRoutes);
+  app.route("/v1/staff", staffRoutes);
   app.route("/v1", v1Routes);
   app.route("/", legacyRoutes);
 
