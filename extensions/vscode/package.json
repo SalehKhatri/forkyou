@@ -91,7 +91,8 @@
     "dev": "node esbuild.mjs --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "package": "node esbuild.mjs --production && vsce package --no-dependencies"
+    "package": "node esbuild.mjs --production && vsce package --no-dependencies",
+    "check:package": "node scripts/check-package.mjs"
   },
   "devDependencies": {
     "@forkyou/shared": "workspace:^",

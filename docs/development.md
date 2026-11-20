@@ -136,7 +136,10 @@ Run **ForkYou: Configure API Key** with a key from `db:seed` or Settings. Logs a
   it goes in the profile.
 
 `pnpm --filter forkyou package` builds `extensions/vscode/forkyou-<version>.vsix`, which you can
-install with `code --install-extension <file>`.
+install with `code --install-extension <file>`. Then run `pnpm --filter forkyou check:package`:
+it checks the `.vsix` contains only the expected files, that the bundle requires nothing but
+`vscode` and Node built-ins, and that it loads. CI runs both on every pull request, because a broken
+package only shows up after people install it.
 
 ## Troubleshooting
 
