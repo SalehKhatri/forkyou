@@ -5,6 +5,7 @@ import { createDb } from "./db/client.js";
 import { loadEnv } from "./env.js";
 import { TtlCache } from "./lib/cache.js";
 import { createLogger } from "./lib/log.js";
+import { deleteExpiredAuthSessions } from "./services/auth.js";
 import { createGithubOAuth } from "./services/github.js";
 import { getLeaderboard } from "./services/leaderboard.js";
 
@@ -37,8 +38,21 @@ const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   }
 });
 
+// Expired logins are deleted when presented; this catches the ones nobody presents again.
+async function sweepExpiredSessions() {
+  try {
+    const deleted = await deleteExpiredAuthSessions(db, new Date());
+    if (deleted > 0) log.info("deleted expired login sessions", { count: deleted });
+  } catch (error) {
+    log.error("expired session sweep failed", error);
+  }
+}
+void sweepExpiredSessions();
+const sweep = setInterval(sweepExpiredSessions, 60 * 60_000);
+
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
+    clearInterval(sweep);
     server.close(async () => {
       await close();
       process.exit(0);

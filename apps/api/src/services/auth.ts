@@ -1,5 +1,5 @@
 import type { ApiKey, ApiKeyCreated } from "@forkyou/shared";
-import { and, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, eq, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { apiKeys, authSessions, type User, users } from "../db/schema.js";
 import { generateApiKey, generateToken, sha256 } from "../lib/crypto.js";
@@ -82,6 +82,20 @@ export async function validateAuthSession(
     return { user: row.user, renewedUntil };
   }
   return { user: row.user, renewedUntil: null };
+}
+
+/**
+ * Deletes every login session that has expired, for all users. Expired sessions are also deleted
+ * when presented, but one that's never used again (a cleared browser, a lost laptop) would
+ * otherwise stay forever. Safe to run from several API instances at once. Returns how many it
+ * deleted.
+ */
+export async function deleteExpiredAuthSessions(db: Db, now: Date): Promise<number> {
+  const deleted = await db
+    .delete(authSessions)
+    .where(lte(authSessions.expiresAt, now))
+    .returning({ id: authSessions.id });
+  return deleted.length;
 }
 
 export async function deleteAuthSession(db: Db, token: string): Promise<void> {

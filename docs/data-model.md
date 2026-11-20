@@ -59,7 +59,8 @@ off the leaderboard ([ADR 0007](adr/0007-leaderboard-moderation.md)); the reason
 (`leaderboard_hidden_reason_visible`), on their dashboard ([ADR 0008](adr/0008-moderation-reason-visibility.md)).
 
 **`auth_sessions`**: browser logins. The primary key is the SHA-256 of the cookie token. 30-day
-sliding expiry; expired rows are deleted when they're next presented.
+sliding expiry. Expired rows are deleted when they're next presented, and the API deletes the rest
+at startup and every hour (`deleteExpiredAuthSessions`).
 
 **`api_keys`**: editor credentials. Only `key_hash` is stored; `key_prefix` (`fy_xxxx`) is for
 display. Revoking sets `revoked_at`, which keeps history for `last_used_at`.
