@@ -1,4 +1,4 @@
-import type { StatsRange, StatsResponse, TodayResponse } from "@forkyou/shared";
+import type { StatsQuery, StatsRange, StatsResponse, TodayResponse } from "@forkyou/shared";
 import { sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { days } from "../lib/time.js";
@@ -38,22 +38,25 @@ export function countStreaks(
 
 /**
  * A user's own stats for the last N days, bucketed by calendar day in their time zone. Every
- * figure covers the same days, except the streak, which is all-time. Projects are private, so
- * this is only ever served to the owner.
+ * figure covers the same days, except the streak, which is all-time. `project` and `language`
+ * narrow every figure, the streak included. Projects are private, so this is only ever served to
+ * the owner.
  */
 export async function getUserStats(
   db: Db,
   userId: string,
-  range: StatsRange,
-  tz: string,
+  { range, tz, project, language }: StatsQuery,
   now: Date = new Date(),
 ): Promise<StatsResponse> {
+  const mine = sql`user_id = ${userId}
+    ${project === undefined ? sql`` : sql`and project = ${project}`}
+    ${language === undefined ? sql`` : sql`and language = ${language}`}`;
   const n = RANGE_DAYS[range];
   // Every figure covers the same calendar days as the series: today and the N-1 before it, in
   // `tz`. `since` (N×24h back) is a looser bound that lets the start-time index narrow the scan.
   const firstDay = dayIn(new Date(now.getTime() - days(n - 1)), tz);
   const since = new Date(now.getTime() - days(n)).toISOString();
-  const base = sql`from coding_sessions where user_id = ${userId}
+  const base = sql`from coding_sessions where ${mine}
     and started_at >= ${since}::timestamptz
     and (started_at at time zone ${tz})::date >= ${firstDay}::date`;
 
@@ -89,7 +92,7 @@ export async function getUserStats(
       ${base}`),
       db.execute<{ day: string }>(sql`
       select distinct to_char((started_at at time zone ${tz})::date, 'YYYY-MM-DD') as day
-      from coding_sessions where user_id = ${userId} order by 1`),
+      from coding_sessions where ${mine} order by 1`),
     ]);
 
   // Dense series: one entry per day, oldest first, zero-filled.

@@ -171,7 +171,7 @@ show it in the status bar and ask after every upload, so use this rather than th
 { "day": "2026-11-20", "seconds": 5400 }
 ```
 
-### `GET /v1/me/stats?range=7d|30d|365d&tz=<IANA zone>` (API key or cookie)
+### `GET /v1/me/stats?range=7d|30d|365d&tz=<IANA zone>[&project=…][&language=…]` (API key or cookie)
 
 `tz` defaults to `UTC`; unknown zones are a `400`. Everything covers the same calendar days in `tz`:
 today and the 6, 29 or 364 days before it. A session counts toward the day it started. `days` is
@@ -206,6 +206,12 @@ dense (one entry per day, oldest first, zero-filled). Languages and projects ret
   over those days, not every day in the range. `bestDay` is the day with the most time (the
   earliest on a tie), or `null` if there was none.
 - `editors`: every editor, most time first. `lines`: lines added and removed in the range.
+
+**Filters.** `project=<name>` and `language=<id>` narrow every figure, the streak included, to
+sessions with exactly that project or language. Both can be combined, for example
+`/v1/me/stats?range=30d&project=forkyou&language=rust`. Sessions only have a project when the
+editor sends one (`forkyou.sendProjectName`). An empty value is a `400`; a name with no sessions
+returns empty figures. Servers from before the filters ignore them and return unfiltered figures.
 
 These five fields were added after 2.0. `packages/shared` gives them empty defaults, so clients
 also accept responses from older servers.

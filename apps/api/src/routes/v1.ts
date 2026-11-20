@@ -129,11 +129,11 @@ export const v1Routes = new Hono<AppEnv>()
     requireAuth("apiKey", "session"),
     validate("query", statsQuerySchema),
     async (c) => {
-      const { range, tz } = c.req.valid("query");
-      if (!isValidTimeZone(tz))
-        throw new AppError(400, "invalid_request", `Unknown time zone: ${tz}`);
+      const query = c.req.valid("query");
+      if (!isValidTimeZone(query.tz))
+        throw new AppError(400, "invalid_request", `Unknown time zone: ${query.tz}`);
       const { db, now } = c.var.deps;
-      return c.json(await getUserStats(db, c.var.user.id, range, tz, now()));
+      return c.json(await getUserStats(db, c.var.user.id, query, now()));
     },
   )
 

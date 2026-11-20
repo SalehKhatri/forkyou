@@ -68,7 +68,12 @@ export type OnlineUser = z.infer<typeof onlineUserSchema>;
 export const statsQuerySchema = z.object({
   range: z.enum(STATS_RANGES).default("7d"),
   tz: z.string().max(64).default("UTC"),
+  /** Only sessions in this project (exact match). Same limits as a session's project. */
+  project: z.string().trim().min(1).max(128).optional(),
+  /** Only sessions in this language (exact match). */
+  language: z.string().trim().min(1).max(64).optional(),
 });
+export type StatsQuery = z.infer<typeof statsQuerySchema>;
 
 export const statsResponseSchema = z.object({
   range: z.enum(STATS_RANGES),
