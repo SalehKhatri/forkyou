@@ -12,6 +12,7 @@ import { isValidTimeZone } from "../lib/time.js";
 import { validate } from "../lib/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireStaff } from "../middleware/staff.js";
+import { getOverview } from "../services/overview.js";
 import {
   appointStaff,
   hideAccount,
@@ -102,6 +103,12 @@ export const staffRoutes = new Hono<AppEnv>()
     if (!result.ok) refused(result.refusal);
     leaderboardCache.clear();
     return c.body(null, 204);
+  })
+
+  // ------------------------------------------------------------ overview
+  .get("/overview", requireStaff("review"), async (c) => {
+    const { db, env, now, overviewCache } = c.var.deps;
+    return c.json(await overviewCache.getOrSet("overview", () => getOverview(db, env, now())));
   })
 
   // ------------------------------------------------------------ accounts

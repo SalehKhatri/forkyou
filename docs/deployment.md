@@ -112,6 +112,7 @@ IP addresses, usernames or user ids.
 | `ingest`                         | `accepted`, `duplicates`, `rejected` (count per reason), `requestId`          |
 | `unhandled error`                | `error` (stack trace), `requestId`; the client got a `500`                    |
 | `leaderboard refresh failed`     | `range`, `error`; the stale leaderboard is still being served                 |
+| `staff overview refresh failed`  | `error`; staff see the previous overview until it succeeds                    |
 | `deleted expired login sessions` | `count`; the hourly sweep of expired browser logins                           |
 | `expired session sweep failed`   | `error`; retried at the next hourly sweep                                     |
 

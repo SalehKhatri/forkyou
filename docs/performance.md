@@ -220,6 +220,26 @@ heavy figures only aggregate the matching sessions, so filtered requests are che
 The status-bar request is cheaper than before (p50 5.5 → 4.0 ms, p99 12 → 7.9 ms), and the other
 endpoints match the Layer 2 run.
 
+## 2026-11-21 · Staff overview (`GET /v1/staff/overview`)
+
+The overview aggregates the whole service, so each figure was measured on its own against the
+2.37M-session data (warm, in Postgres) before choosing how to compute it:
+
+| Figure                                     | Time       | Source                          |
+| ------------------------------------------ | ---------- | ------------------------------- |
+| Users, sign-ups per day                    | < 1 ms     | `users`                         |
+| Active users today / 7 days / 30 days      | 140 ms     | `daily_stats`                   |
+| Seconds and active users per day (30 days) | 50 ms      | `daily_stats`                   |
+| Language mix (30 days)                     | 110 ms     | `daily_stats`                   |
+| Editor mix (30 days)                       | 1,000 ms   | raw sessions (no rollup column) |
+| Editor mix (7 days)                        | 100–250 ms | raw sessions                    |
+| Sessions per day (30 days)                 | 390 ms     | raw sessions                    |
+
+Sessions per day was left out (seconds and active users per day answer the same question), and the
+editor mix covers 7 days. The API caches the result for a minute and serves the stale copy while it
+refreshes. Over HTTP, the first request after the API starts took 1.5 s, which includes opening
+database connections; after that, p50 5.2 ms and p95 8.3 ms.
+
 ## Summary
 
 | Run                    | Requests | Errors | Worst p99 (endpoint)       | Postgres CPU avg / peak |

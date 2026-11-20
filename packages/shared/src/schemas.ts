@@ -302,3 +302,39 @@ export const staffUserSchema = z.object({
   stats: statsResponseSchema,
 });
 export type StaffUser = z.infer<typeof staffUserSchema>;
+
+/**
+ * GET /v1/staff/overview: the whole service at a glance, for staff. Days are UTC calendar days,
+ * because the numbers come from the `daily_stats` rollup. Cached for up to a minute.
+ */
+export const staffOverviewSchema = z.object({
+  generatedAt: z.iso.datetime(),
+  users: z.object({
+    total: z.number().int(),
+    /** Super admins who have signed in, admins and moderators. */
+    staff: z.number().int(),
+    hiddenFromLeaderboard: z.number().int(),
+  }),
+  /** Distinct users who coded today, in the last 7 days and in the last 30 days (UTC days). */
+  activeUsers: z.object({
+    today: z.number().int(),
+    week: z.number().int(),
+    month: z.number().int(),
+  }),
+  /** People coding right now who allow being shown online; others aren't counted. */
+  onlineNow: z.number().int(),
+  /** The last 30 UTC days, oldest first, zero-filled. */
+  days: z.array(
+    z.object({
+      day: z.iso.date(),
+      signups: z.number().int(),
+      activeUsers: z.number().int(),
+      seconds: z.number().int(),
+    }),
+  ),
+  /** Top 10 languages over the last 30 UTC days. */
+  languages: z.array(z.object({ language: z.string(), seconds: z.number().int() })),
+  /** Every editor over the last 7 days (rolling), which reads raw sessions, so it's shorter. */
+  editors: z.array(z.object({ editor: z.string(), seconds: z.number().int() })),
+});
+export type StaffOverview = z.infer<typeof staffOverviewSchema>;

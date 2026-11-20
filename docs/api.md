@@ -287,12 +287,17 @@ can't act on their own account or on staff ranked at or above them (`403 outrank
 | `GET /v1/staff/leaderboard-hidden`                    | moderator   | `[{ username, hiddenAt, reason, reasonVisible }]`, oldest first                                                                                                                                                                    |
 | `PUT /v1/staff/users/:username/leaderboard-hidden`    | moderator   | `{ "reason": "…", "showReason"?: false }` → `204`. Hiding again replaces the reason.                                                                                                                                               |
 | `DELETE /v1/staff/users/:username/leaderboard-hidden` | moderator   | `204`, or `404` if the account isn't hidden                                                                                                                                                                                        |
+| `GET /v1/staff/overview`                              | moderator   | `{ generatedAt, users: { total, staff, hiddenFromLeaderboard }, activeUsers: { today, week, month }, onlineNow, days: [{ day, signups, activeUsers, seconds }], languages, editors }`. Cached for a minute.                        |
 | `GET /v1/staff/users/:username?range=7d&tz=<zone>`    | moderator   | The account for review: profile, `staffRole`, `leaderboard` (hidden, reason, visibility), `apiKeys` (active count, last use), `recent` seconds (24 h / 7 d / 30 d) and `stats` as in `/v1/me/stats`, but `projects` is always `[]` |
 | `POST /v1/staff/users/:username/revoke-keys`          | admin       | `{ "revoked": 2 }`. Revokes every active key; `0` changes and records nothing.                                                                                                                                                     |
 | `GET /v1/staff/audit?limit=50&before=<cursor>`        | admin       | `{ entries: [{ id, action, actor, target, details, createdAt }], next }`, newest first                                                                                                                                             |
 
 "Role" is the least trusted role allowed; more trusted roles can too. Super admins are set with
 `SUPER_ADMIN_GITHUB_IDS` and can't be appointed or removed through the API.
+
+The overview uses UTC days (it reads the `daily_stats` rollup): `days` is the last 30, zero-filled;
+`languages` is the top 10 over 30 days; `editors` covers the last 7 days. `onlineNow` only counts
+people who allow being shown online.
 
 Lookup never returns project names (they're private to their owner), API keys or token hashes.
 Any staff member can look up any account, since looking isn't acting. Revoked keys stop working
