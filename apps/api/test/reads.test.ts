@@ -248,6 +248,104 @@ describe("GET /v1/me/stats", () => {
   });
 });
 
+describe("GET /v1/me/stats with filters", () => {
+  async function statsFor(cookie: { Cookie: string }, query: string) {
+    const res = await makeApp(db).request(`/v1/me/stats?${query}`, { headers: cookie });
+    return statsResponseSchema.parse(await res.json());
+  }
+
+  async function seedWork(userId: string) {
+    await seed(
+      userId,
+      session({ endsMinutesAgo: 60, minutes: 10, project: "api", language: "go" }),
+      session({ endsMinutesAgo: 90, minutes: 5, project: "api", language: "sql" }),
+      session({ endsMinutesAgo: 120, minutes: 3, project: "web", language: "go" }),
+      session({ endsMinutesAgo: minutesAgo(1), minutes: 4, project: "web", language: "go" }),
+    );
+  }
+
+  it("narrows every figure to one project", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    await seedWork(user.id);
+
+    const stats = await statsFor(cookie, "project=api");
+
+    expect(stats.totalSeconds).toBe(900);
+    expect(stats.days.at(-1)).toEqual({ day: "2026-11-16", seconds: 900 });
+    expect(stats.languages).toEqual([
+      { language: "go", seconds: 600 },
+      { language: "sql", seconds: 300 },
+    ]);
+    expect(stats.projects).toEqual([{ project: "api", seconds: 900 }]);
+    expect(stats.editors).toEqual([{ editor: "vscode", seconds: 900 }]);
+    // Both api sessions (10:25–10:30 and 10:50–11:00 UTC) fall in Monday's 10:00 hour.
+    expect(stats.heatmap).toEqual(heatmapWith([[0, 10, 900]]));
+  });
+
+  it("narrows every figure to one language", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    await seedWork(user.id);
+
+    const stats = await statsFor(cookie, "language=go");
+
+    expect(stats.totalSeconds).toBe(1020);
+    expect(stats.projects).toEqual([
+      { project: "api", seconds: 600 },
+      { project: "web", seconds: 420 },
+    ]);
+  });
+
+  it("combines a project and a language filter", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    await seedWork(user.id);
+
+    const stats = await statsFor(cookie, "project=web&language=go");
+
+    expect(stats.totalSeconds).toBe(420);
+    expect(stats.highlights.activeDays).toBe(2);
+  });
+
+  it("counts the streak only over days with matching sessions", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    await seed(
+      user.id,
+      session({ endsMinutesAgo: minutesAgo(3), project: "web" }),
+      session({ endsMinutesAgo: minutesAgo(2), project: "web" }),
+      session({ endsMinutesAgo: minutesAgo(1), project: "api" }),
+      session({ endsMinutesAgo: 60, project: "api" }),
+    );
+
+    expect((await statsFor(cookie, "")).streak).toEqual({ current: 4, longest: 4 });
+    expect((await statsFor(cookie, "project=api")).streak).toEqual({ current: 2, longest: 2 });
+    expect((await statsFor(cookie, "project=web")).streak).toEqual({ current: 0, longest: 2 });
+  });
+
+  it("returns empty figures for a project with no sessions", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    await seedWork(user.id);
+
+    const stats = await statsFor(cookie, "project=nope");
+
+    expect(stats.totalSeconds).toBe(0);
+    expect(stats.languages).toEqual([]);
+    expect(stats.streak).toEqual({ current: 0, longest: 0 });
+  });
+
+  it("rejects an empty filter", async () => {
+    const { cookie } = await createUserWithSession(db);
+
+    const res = await makeApp(db).request("/v1/me/stats?project=", { headers: cookie });
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: {
+        code: "invalid_request",
+        message: "✖ Too small: expected string to have >=1 characters\n  → at project",
+      },
+    });
+  });
+});
+
 describe("GET /v1/me/today", () => {
   it("returns the seconds coded today in the requested time zone", async () => {
     const { user, auth } = await createUserWithKey(db);
