@@ -29,6 +29,8 @@ the editor (`vscode`), how many lines were added and removed, and the workspace 
   setting (it can be set per workspace).
 - **Presence:** while you're active, ForkYou tells the server you're online and which language
   you're using. You can hide both in Settings on forkyou.dev.
+- **Your data:** download all of it, or delete your account and everything with it, under
+  Settings → Your data on forkyou.dev.
 
 ## Commands
 

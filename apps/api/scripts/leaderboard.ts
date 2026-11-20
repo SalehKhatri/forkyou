@@ -2,11 +2,12 @@
  * Maintainer tool: keep accounts off the public leaderboard (ADR 0007).
  *
  *   pnpm --filter @forkyou/api leaderboard list
- *   pnpm --filter @forkyou/api leaderboard hide <username> --reason "<why>"
+ *   pnpm --filter @forkyou/api leaderboard hide <username> --reason "<why>" [--show-reason]
  *   pnpm --filter @forkyou/api leaderboard show <username>
  *
  * Runs against DATABASE_URL. Changes appear on the leaderboard within about a minute (the API's
- * cache). The reason is a private note; the user only sees that they're hidden.
+ * cache). The user always sees that they're hidden; `--show-reason` also shows them why on their
+ * dashboard. Their data export includes the reason either way (ADR 0008).
  */
 import { parseArgs } from "node:util";
 import { createDb } from "../src/db/client.js";
@@ -19,12 +20,12 @@ import {
 
 const USAGE = `Usage:
   leaderboard list
-  leaderboard hide <username> --reason "<why>"
+  leaderboard hide <username> --reason "<why>" [--show-reason]
   leaderboard show <username>`;
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { reason: { type: "string" } },
+  options: { reason: { type: "string" }, "show-reason": { type: "boolean", default: false } },
 });
 const [command, username] = positionals;
 
@@ -36,10 +37,13 @@ try {
     const hidden = await listHiddenFromLeaderboard(db);
     if (hidden.length === 0) console.log("No accounts are hidden.");
     for (const h of hidden) {
-      console.log(`${h.username}\t${h.hiddenAt?.toISOString()}\t${h.reason ?? ""}`);
+      const shown = h.reasonVisible ? "shown to user" : "not shown";
+      console.log(`${h.username}\t${h.hiddenAt?.toISOString()}\t${shown}\t${h.reason ?? ""}`);
     }
   } else if (command === "hide" && username && values.reason) {
-    const ok = await hideFromLeaderboard(db, username, values.reason);
+    const ok = await hideFromLeaderboard(db, username, values.reason, new Date(), {
+      showReason: values["show-reason"],
+    });
     console.log(ok ? `Hid ${username} from the leaderboard.` : `No user named ${username}.`);
     exitCode = ok ? 0 : 1;
   } else if (command === "show" && username) {

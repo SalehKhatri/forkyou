@@ -79,11 +79,11 @@ describe("hiding an account from the leaderboard", () => {
     await hideFromLeaderboard(db, "cheater", "scripted uploads", NOW);
 
     expect(await listHiddenFromLeaderboard(db)).toEqual([
-      { username: "cheater", hiddenAt: NOW, reason: "scripted uploads" },
+      { username: "cheater", hiddenAt: NOW, reason: "scripted uploads", reasonVisible: false },
     ]);
   });
 
-  it("tells the user they're hidden in /v1/me, without the private reason", async () => {
+  it("tells the user they're hidden in /v1/me, without the reason unless the maintainer shows it", async () => {
     const { user, cookie } = await createUserWithSession(db, "cheater");
     const app = makeApp(db);
     const before = await (await app.request("/v1/me", { headers: cookie })).json();
@@ -91,9 +91,36 @@ describe("hiding an account from the leaderboard", () => {
     await hideFromLeaderboard(db, "cheater", "scripted uploads", NOW);
     const after = await (await app.request("/v1/me", { headers: cookie })).json();
 
-    expect(before).toMatchObject({ id: user.id, leaderboardHidden: false });
-    expect(after).toMatchObject({ id: user.id, leaderboardHidden: true });
+    expect(before).toMatchObject({ leaderboardHidden: false, leaderboardHiddenReason: null });
+    expect(after).toMatchObject({
+      id: user.id,
+      leaderboardHidden: true,
+      leaderboardHiddenReason: null,
+    });
     expect(JSON.stringify(after)).not.toContain("scripted uploads");
+  });
+
+  it("shows the reason in /v1/me when the maintainer chooses to", async () => {
+    const { cookie } = await createUserWithSession(db, "cheater");
+
+    await hideFromLeaderboard(db, "cheater", "24 h a day for a week", NOW, { showReason: true });
+    const me = await (await makeApp(db).request("/v1/me", { headers: cookie })).json();
+
+    expect(me).toMatchObject({
+      leaderboardHidden: true,
+      leaderboardHiddenReason: "24 h a day for a week",
+    });
+  });
+
+  it("forgets the reason and its visibility when the account is shown again", async () => {
+    const { cookie } = await createUserWithSession(db, "ada");
+    await hideFromLeaderboard(db, "ada", "mistake", NOW, { showReason: true });
+
+    await showOnLeaderboard(db, "ada");
+    await hideFromLeaderboard(db, "ada", "second look", NOW);
+    const me = await (await makeApp(db).request("/v1/me", { headers: cookie })).json();
+
+    expect(me).toMatchObject({ leaderboardHidden: true, leaderboardHiddenReason: null });
   });
 
   it("leaves the user's own stats and uploads untouched", async () => {

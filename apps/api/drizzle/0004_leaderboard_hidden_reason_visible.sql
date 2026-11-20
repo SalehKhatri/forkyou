@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "leaderboard_hidden_reason_visible" boolean DEFAULT false NOT NULL;

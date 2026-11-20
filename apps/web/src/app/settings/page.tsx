@@ -4,6 +4,7 @@ import { ApiKeys } from "@/components/api-keys";
 import { PrivacySettings } from "@/components/privacy-settings";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Avatar } from "@/components/ui";
+import { YourData } from "@/components/your-data";
 import { getApiKeys, getMe } from "@/lib/api.server";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
       </div>
       <ApiKeys initial={keys} />
       <PrivacySettings me={me} />
+      <YourData username={me.username} />
     </div>
   );
 }

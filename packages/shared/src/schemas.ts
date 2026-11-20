@@ -111,6 +111,11 @@ export const meResponseSchema = z.object({
    * Defaults to false so clients still accept responses from servers that predate it.
    */
   leaderboardHidden: z.boolean().default(false),
+  /**
+   * Why, if the maintainer chose to show it (ADR 0008); otherwise null. The data export always
+   * includes the reason. Defaults to null so clients accept servers that predate it.
+   */
+  leaderboardHiddenReason: z.string().nullable().default(null),
   createdAt: z.iso.datetime(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
@@ -137,6 +142,40 @@ export type ApiKey = z.infer<typeof apiKeySchema>;
 /** Returned once, at creation. The plaintext key is never retrievable again. */
 export const apiKeyCreatedSchema = apiKeySchema.extend({ key: z.string() });
 export type ApiKeyCreated = z.infer<typeof apiKeyCreatedSchema>;
+
+// ---------------------------------------------------------------- your data
+
+/** Body of `DELETE /v1/me`: the username, typed again, so an account is never deleted by accident. */
+export const accountDeleteSchema = z.object({ confirm: z.string() });
+export type AccountDelete = z.input<typeof accountDeleteSchema>;
+
+/** One stored coding session, as included in a data export. */
+export const exportedSessionSchema = z.object({
+  id: z.uuid(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime(),
+  durationSeconds: z.number().int(),
+  language: z.string(),
+  project: z.string().nullable(),
+  editor: z.enum(EDITORS),
+  linesAdded: z.number().int(),
+  linesRemoved: z.number().int(),
+  receivedAt: z.iso.datetime(),
+});
+
+/** `GET /v1/me/export`: everything ForkYou stores about the signed-in user. */
+export const accountExportSchema = z.object({
+  exportedAt: z.iso.datetime(),
+  user: meResponseSchema.extend({
+    githubId: z.number().int(),
+    lastSeenAt: z.iso.datetime().nullable(),
+    presenceLanguage: z.string().nullable(),
+    presenceEditor: z.string().nullable(),
+  }),
+  apiKeys: z.array(apiKeySchema.extend({ revokedAt: z.iso.datetime().nullable() })),
+  sessions: z.array(exportedSessionSchema),
+});
+export type AccountExport = z.infer<typeof accountExportSchema>;
 
 /** Error envelope returned by every non-2xx API response. */
 export const apiErrorSchema = z.object({

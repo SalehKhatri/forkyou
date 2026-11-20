@@ -1,6 +1,7 @@
 # 0007: The maintainer can hide accounts from the leaderboard
 
-**Status:** accepted · **Date:** 2026-11-18
+**Status:** accepted, partly superseded by [ADR 0008](0008-moderation-reason-visibility.md) ·
+**Date:** 2026-11-18
 
 ## Context
 

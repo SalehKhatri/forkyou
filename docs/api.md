@@ -28,15 +28,16 @@ Every non-2xx response has this shape:
 }
 ```
 
-| Status | `code`               | Meaning                                                  |
-| ------ | -------------------- | -------------------------------------------------------- |
-| 400    | `invalid_request`    | Body or query failed validation. `message` says where.   |
-| 401    | `unauthorized`       | Missing, unknown or revoked credentials                  |
-| 404    | `not_found`          | Unknown route or resource (including another user's key) |
-| 410    | `extension_outdated` | A ForkYou 1.x endpoint. The client must update.          |
-| 413    | `payload_too_large`  | Body too large (sessions: 512 KB)                        |
-| 503    | `oauth_unconfigured` | GitHub login isn't configured on this server             |
-| 500    | `internal`           | Bug. Logged with a request id.                           |
+| Status | `code`                  | Meaning                                                  |
+| ------ | ----------------------- | -------------------------------------------------------- |
+| 400    | `invalid_request`       | Body or query failed validation. `message` says where.   |
+| 400    | `confirmation_mismatch` | `DELETE /v1/me`: the typed username didn't match         |
+| 401    | `unauthorized`          | Missing, unknown or revoked credentials                  |
+| 404    | `not_found`             | Unknown route or resource (including another user's key) |
+| 410    | `extension_outdated`    | A ForkYou 1.x endpoint. The client must update.          |
+| 413    | `payload_too_large`     | Body too large (sessions: 512 KB)                        |
+| 503    | `oauth_unconfigured`    | GitHub login isn't configured on this server             |
+| 500    | `internal`              | Bug. Logged with a request id.                           |
 
 ## Limits
 
@@ -145,13 +146,16 @@ The current user. Extensions use it to check a key during setup.
   "showPresence": true,
   "showLanguage": true,
   "leaderboardHidden": false,
+  "leaderboardHiddenReason": null,
   "createdAt": "…"
 }
 ```
 
 `leaderboardHidden` is `true` when the maintainer has kept the account off the public leaderboard
-([ADR 0007](adr/0007-leaderboard-moderation.md)); stats and uploads are unaffected. Added after
-the first 2.0 release, so clients should treat a missing value as `false`.
+([ADR 0007](adr/0007-leaderboard-moderation.md)); stats and uploads are unaffected.
+`leaderboardHiddenReason` is the reason if the maintainer chose to show it, otherwise `null`
+([ADR 0008](adr/0008-moderation-reason-visibility.md)). Both were added after the first 2.0
+release, so clients should treat missing values as `false` and `null`.
 
 ### `PATCH /v1/me/settings` (cookie)
 
@@ -171,6 +175,40 @@ zero-filled). Languages and projects return the top 20.
   "projects": [{ "project": "forkyou", "seconds": 6900 }]
 }
 ```
+
+### `DELETE /v1/me` (cookie)
+
+Deletes the account and everything stored for it: coding sessions, the daily rollup, API keys and
+browser logins. The body must repeat the username exactly, so an account is never deleted by
+accident:
+
+```json
+{ "confirm": "ada" }
+```
+
+`204` and the session cookie is cleared. `400 confirmation_mismatch` if `confirm` isn't the
+username. API keys can't delete accounts (`401`).
+
+### `GET /v1/me/export` (cookie)
+
+Everything ForkYou stores about you, as a JSON file download
+(`Content-Disposition: attachment; filename="forkyou-<username>-<date>.json"`):
+
+```json
+{
+  "exportedAt": "2026-11-18T09:00:00.000Z",
+  "user": { "id": "…", "username": "ada", "githubId": 1, "…": "…" },
+  "apiKeys": [{ "id": "…", "name": "Laptop", "prefix": "fy_ab12", "revokedAt": null, "…": "…" }],
+  "sessions": [
+    { "id": "…", "startedAt": "…", "durationSeconds": 420, "language": "rust", "…": "…" }
+  ]
+}
+```
+
+`user` is the `/v1/me` response plus `githubId` and the latest presence, and
+`leaderboardHiddenReason` is always filled in when the account is hidden, even if it isn't shown on
+the dashboard (ADR 0008). Never included: API key and login token hashes. Shape:
+`accountExportSchema` in `packages/shared`.
 
 ### API keys (cookie)
 
