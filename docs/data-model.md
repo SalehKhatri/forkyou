@@ -72,7 +72,11 @@ off the leaderboard ([ADR 0007](adr/0007-leaderboard-moderation.md)); the reason
 overrides this column.
 
 **`admin_actions`**: the audit log of staff writes (ADR 0009). Each row has who acted, on whom, the
-`action` (`staff.appoint`, `staff.remove`) and its `details` (the role, the previous role).
+`action` and its `details`: `staff.appoint` (`role`, `previousRole`), `staff.remove`
+(`previousRole`), `leaderboard.hide` (`reason`, `showReason`) and `leaderboard.show`
+(`previousReason`). `created_at` comes from the API's clock, not the database's, so it has
+millisecond precision and the audit cursor matches it exactly. The `leaderboard` CLI writes no audit
+rows: it runs with direct database access, which can bypass any record anyway.
 
 **`auth_sessions`**: browser logins. The primary key is the SHA-256 of the cookie token. 30-day
 sliding expiry. Expired rows are deleted when they're next presented, and the API deletes the rest

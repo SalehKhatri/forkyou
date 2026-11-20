@@ -163,8 +163,9 @@ The person must have signed in once. Every appointment and removal is recorded i
 
 ## Moderation
 
-To keep an account off the public leaderboard ([ADR 0007](adr/0007-leaderboard-moderation.md)),
-run from a checkout with `DATABASE_URL` set to the production database:
+Staff can hide and show accounts through the API (`/v1/staff/users/:username/leaderboard-hidden`,
+see [api.md](api.md)), which records who did it. For when the web app is down, the same can be done
+from a checkout with `DATABASE_URL` set to the production database. The CLI isn't audited:
 
 ```bash
 pnpm --filter @forkyou/api leaderboard hide <username> --reason "24 h a day for a week" --show-reason
