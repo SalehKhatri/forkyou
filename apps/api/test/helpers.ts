@@ -49,6 +49,7 @@ export function makeApp(db: Deps["db"], overrides: Partial<Deps> = {}) {
     github: fakeGithub(),
     // No caching in tests: every request reads the database.
     leaderboardCache: new TtlCache(0, { maxStaleMs: 0 }),
+    overviewCache: new TtlCache(0, { maxStaleMs: 0 }),
     // Quiet by default; pass `log: memoryLogger()` to assert on what's logged.
     log: memoryLogger(),
     now: () => NOW,

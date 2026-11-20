@@ -1,4 +1,4 @@
-import type { StaffRole } from "@forkyou/shared";
+import type { StaffOverview, StaffRole } from "@forkyou/shared";
 import type { Hono } from "hono";
 import type { Db } from "./db/client.js";
 import type { User } from "./db/schema.js";
@@ -13,6 +13,8 @@ export type Deps = {
   env: Env;
   github: GithubOAuth | null;
   leaderboardCache: TtlCache<unknown>;
+  /** The staff overview, cached for a minute: it aggregates the whole service. */
+  overviewCache: TtlCache<StaffOverview>;
   log: Logger;
   now: () => Date;
 };

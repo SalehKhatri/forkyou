@@ -1,4 +1,4 @@
-import { LEADERBOARD_RANGES } from "@forkyou/shared";
+import { LEADERBOARD_RANGES, type StaffOverview } from "@forkyou/shared";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app.js";
 import { createDb } from "./db/client.js";
@@ -26,7 +26,18 @@ if (!github) log.info("GITHUB_CLIENT_ID/SECRET not set: login is disabled");
 const leaderboardCache = new TtlCache<unknown>(30_000, {
   onError: (range, error) => log.error("leaderboard refresh failed", error, { range }),
 });
-const app = createApp({ db, env, github, leaderboardCache, log, now: () => new Date() });
+const overviewCache = new TtlCache<StaffOverview>(60_000, {
+  onError: (_key, error) => log.error("staff overview refresh failed", error),
+});
+const app = createApp({
+  db,
+  env,
+  github,
+  leaderboardCache,
+  overviewCache,
+  log,
+  now: () => new Date(),
+});
 
 const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   log.info("api listening", { port: info.port });
