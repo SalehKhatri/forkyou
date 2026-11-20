@@ -76,6 +76,28 @@ export const statsResponseSchema = z.object({
   days: z.array(z.object({ day: z.iso.date(), seconds: z.number().int() })),
   languages: z.array(z.object({ language: z.string(), seconds: z.number().int() })),
   projects: z.array(z.object({ project: z.string(), seconds: z.number().int() })),
+  // Added after 2.0. Defaults let clients read responses from servers that predate them.
+  /** Seconds per local [weekday][hour]: 7 rows, Monday first, of 24 hours. */
+  heatmap: z
+    .array(z.array(z.number().int()).length(24))
+    .length(7)
+    .default(() => Array.from({ length: 7 }, () => Array<number>(24).fill(0))),
+  /** Consecutive local days with any coding, over all time, not just `range`. */
+  streak: z
+    .object({ current: z.number().int(), longest: z.number().int() })
+    .default({ current: 0, longest: 0 }),
+  highlights: z
+    .object({
+      activeDays: z.number().int(),
+      /** Average over days with any coding, not over every day in the range. */
+      dailyAverageSeconds: z.number().int(),
+      bestDay: z.object({ day: z.iso.date(), seconds: z.number().int() }).nullable(),
+    })
+    .default({ activeDays: 0, dailyAverageSeconds: 0, bestDay: null }),
+  editors: z.array(z.object({ editor: z.string(), seconds: z.number().int() })).default([]),
+  lines: z
+    .object({ added: z.number().int(), removed: z.number().int() })
+    .default({ added: 0, removed: 0 }),
 });
 export type StatsResponse = z.infer<typeof statsResponseSchema>;
 

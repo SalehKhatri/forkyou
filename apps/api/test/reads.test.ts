@@ -23,6 +23,24 @@ async function seed(userId: string, ...sessions: ReturnType<typeof session>[]) {
   );
 }
 
+/** Sessions from more than maxSessionAgeDays ago, stored as if uploaded right after they ended. */
+async function seedLongAgo(userId: string, s: ReturnType<typeof session>) {
+  const uploadedAt = new Date(Date.parse(s.startedAt) + s.durationSeconds * 1000 + 60_000);
+  await ingestSessions(db, userId, [sessionInputSchema.parse(s)], uploadedAt);
+}
+
+const minutesAgo = (days: number) => days * 24 * 60;
+
+/** A heatmap that's zero except for the given [weekday][hour] = seconds (weekday 0 = Monday). */
+function heatmapWith(cells: [weekday: number, hour: number, seconds: number][]) {
+  const grid = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+  for (const [weekday, hour, seconds] of cells) {
+    const row = grid[weekday];
+    if (row) row[hour] = seconds;
+  }
+  return grid;
+}
+
 describe("GET /v1/leaderboard", () => {
   it("ranks by total time with each user's top language", async () => {
     const alice = await createUser(db, "alice");
@@ -135,6 +153,98 @@ describe("GET /v1/me/stats", () => {
       );
     expect(await last(utc)).toEqual([{ day: "2026-11-16", seconds: 600 }]);
     expect(await last(ny)).toEqual([{ day: "2026-11-15", seconds: 600 }]);
+  });
+  it("splits each session's time across the local hours it spans", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    // Monday Nov 16, 10:55–11:10 UTC, which is 16:25–16:40 in Kolkata (UTC+5:30).
+    await seed(user.id, session({ endsMinutesAgo: 50, minutes: 15 }));
+    const get = async (tz: string) =>
+      statsResponseSchema.parse(
+        await (await makeApp(db).request(`/v1/me/stats?tz=${tz}`, { headers: cookie })).json(),
+      ).heatmap;
+
+    expect(await get("UTC")).toEqual(
+      heatmapWith([
+        [0, 10, 300],
+        [0, 11, 600],
+      ]),
+    );
+    expect(await get("Asia/Kolkata")).toEqual(heatmapWith([[0, 16, 900]]));
+  });
+
+  it("splits a session across a DST change by real elapsed time", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    // Sunday Nov 1, 2026, 05:55–06:05 UTC. New York falls back at 06:00 UTC, so this is
+    // 01:55–02:00 EDT and then 01:00–01:05 EST: ten minutes, all in the local 1am hour.
+    await seedLongAgo(
+      user.id,
+      session({ startedAt: "2026-11-01T05:55:00.000Z", durationSeconds: 600 }),
+    );
+
+    const res = await makeApp(db).request("/v1/me/stats?range=30d&tz=America/New_York", {
+      headers: cookie,
+    });
+
+    expect(statsResponseSchema.parse(await res.json()).heatmap).toEqual(heatmapWith([[6, 1, 600]]));
+  });
+
+  it("returns highlights, editors and lines for the range", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    await seed(
+      user.id,
+      session({ endsMinutesAgo: 60, minutes: 10, linesAdded: 40, linesRemoved: 5 }),
+      session({ endsMinutesAgo: minutesAgo(1), minutes: 5, linesAdded: 2 }),
+      session({ endsMinutesAgo: minutesAgo(1) + 30, minutes: 5, editor: "jetbrains" }),
+    );
+
+    const stats = statsResponseSchema.parse(
+      await (await makeApp(db).request("/v1/me/stats", { headers: cookie })).json(),
+    );
+
+    expect(stats.highlights).toEqual({
+      activeDays: 2,
+      dailyAverageSeconds: 600,
+      // Both days have 600s; the earlier one wins the tie.
+      bestDay: { day: "2026-11-15", seconds: 600 },
+    });
+    expect(stats.editors).toEqual([
+      { editor: "vscode", seconds: 900 },
+      { editor: "jetbrains", seconds: 300 },
+    ]);
+    expect(stats.lines).toEqual({ added: 42, removed: 5 });
+  });
+
+  it("counts streaks over all time, not just the range", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    for (const daysAgo of [20, 19, 18, 17]) {
+      await seedLongAgo(user.id, session({ endsMinutesAgo: minutesAgo(daysAgo) }));
+    }
+    await seed(
+      user.id,
+      session({ endsMinutesAgo: minutesAgo(1) }),
+      session({ endsMinutesAgo: 60 }),
+    );
+
+    const stats = statsResponseSchema.parse(
+      await (await makeApp(db).request("/v1/me/stats?range=7d", { headers: cookie })).json(),
+    );
+
+    expect(stats.streak).toEqual({ current: 2, longest: 4 });
+    expect(stats.highlights.activeDays).toBe(2);
+  });
+
+  it("returns empty figures for a user who hasn't coded", async () => {
+    const { cookie } = await createUserWithSession(db);
+
+    const stats = statsResponseSchema.parse(
+      await (await makeApp(db).request("/v1/me/stats", { headers: cookie })).json(),
+    );
+
+    expect(stats.heatmap).toEqual(heatmapWith([]));
+    expect(stats.streak).toEqual({ current: 0, longest: 0 });
+    expect(stats.highlights).toEqual({ activeDays: 0, dailyAverageSeconds: 0, bestDay: null });
+    expect(stats.editors).toEqual([]);
+    expect(stats.lines).toEqual({ added: 0, removed: 0 });
   });
 });
 
