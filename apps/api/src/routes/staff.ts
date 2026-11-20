@@ -1,4 +1,4 @@
-import { staffAppointSchema } from "@forkyou/shared";
+import { auditQuerySchema, leaderboardHideSchema, staffAppointSchema } from "@forkyou/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import type { AppEnv } from "../context.js";
@@ -6,7 +6,16 @@ import { AppError, notFound } from "../lib/errors.js";
 import { validate } from "../lib/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireStaff } from "../middleware/staff.js";
-import { appointStaff, listStaff, type Refusal, removeStaff } from "../services/staff.js";
+import {
+  appointStaff,
+  hideAccount,
+  listHiddenAccounts,
+  listStaff,
+  type Refusal,
+  readAudit,
+  removeStaff,
+  showAccount,
+} from "../services/staff.js";
 
 const actor = (c: Context<AppEnv>) => ({ id: c.var.user.id, role: c.var.staffRole });
 
@@ -16,6 +25,8 @@ function refused(refusal: Refusal): never {
       throw notFound("User");
     case "not_staff":
       throw notFound("Staff member");
+    case "not_hidden":
+      throw notFound("Hidden account");
     case "outranked":
       throw new AppError(
         403,
@@ -40,21 +51,54 @@ export const staffRoutes = new Hono<AppEnv>()
     requireStaff("manageStaff"),
     validate("json", staffAppointSchema),
     async (c) => {
-      const { db, env } = c.var.deps;
+      const { db, env, now } = c.var.deps;
       const result = await appointStaff(
         db,
         env,
         actor(c),
         c.req.param("username"),
         c.req.valid("json").role,
+        now(),
       );
       if (!result.ok) refused(result.refusal);
       return c.json(result.member);
     },
   )
   .delete("/members/:username", requireStaff("manageStaff"), async (c) => {
-    const { db, env } = c.var.deps;
-    const result = await removeStaff(db, env, actor(c), c.req.param("username"));
+    const { db, env, now } = c.var.deps;
+    const result = await removeStaff(db, env, actor(c), c.req.param("username"), now());
     if (!result.ok) refused(result.refusal);
     return c.body(null, 204);
+  })
+
+  // ------------------------------------------------------------ leaderboard moderation
+  .get("/leaderboard-hidden", requireStaff("review"), async (c) =>
+    c.json(await listHiddenAccounts(c.var.deps.db)),
+  )
+  .put(
+    "/users/:username/leaderboard-hidden",
+    requireStaff("moderate"),
+    validate("json", leaderboardHideSchema),
+    async (c) => {
+      const { db, env, now, leaderboardCache } = c.var.deps;
+      const body = c.req.valid("json");
+      const result = await hideAccount(db, env, actor(c), c.req.param("username"), body, now());
+      if (!result.ok) refused(result.refusal);
+      leaderboardCache.clear();
+      return c.body(null, 204);
+    },
+  )
+  .delete("/users/:username/leaderboard-hidden", requireStaff("moderate"), async (c) => {
+    const { db, env, now, leaderboardCache } = c.var.deps;
+    const result = await showAccount(db, env, actor(c), c.req.param("username"), now());
+    if (!result.ok) refused(result.refusal);
+    leaderboardCache.clear();
+    return c.body(null, 204);
+  })
+
+  // ------------------------------------------------------------ audit log
+  .get("/audit", requireStaff("readAudit"), validate("query", auditQuerySchema), async (c) => {
+    const page = await readAudit(c.var.deps.db, c.req.valid("query"));
+    if (!page) throw new AppError(400, "invalid_request", "Unknown audit cursor");
+    return c.json(page);
   });

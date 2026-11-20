@@ -234,3 +234,44 @@ export const staffMemberSchema = z.object({
   role: z.enum(STAFF_ROLES),
 });
 export type StaffMember = z.infer<typeof staffMemberSchema>;
+
+/** PUT /v1/staff/users/:username/leaderboard-hidden. */
+export const leaderboardHideSchema = z.object({
+  reason: z.string().trim().min(1).max(500),
+  /** Also show the reason on the user's dashboard (ADR 0008). It's in their export either way. */
+  showReason: z.boolean().default(false),
+});
+export type LeaderboardHide = z.infer<typeof leaderboardHideSchema>;
+
+export const hiddenAccountSchema = z.object({
+  username: z.string(),
+  hiddenAt: z.iso.datetime(),
+  reason: z.string().nullable(),
+  reasonVisible: z.boolean(),
+});
+export type HiddenAccount = z.infer<typeof hiddenAccountSchema>;
+
+/** GET /v1/staff/audit: newest first; pass `next` back as `before` for the following page. */
+export const auditQuerySchema = z.object({
+  /** An opaque cursor from a previous page's `next`. */
+  before: z.string().max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+export const auditEntrySchema = z.object({
+  id: z.uuid(),
+  action: z.string(),
+  /** Usernames, or null once that account has been deleted. */
+  actor: z.string().nullable(),
+  target: z.string().nullable(),
+  details: z.record(z.string(), z.unknown()),
+  createdAt: z.iso.datetime(),
+});
+export type AuditEntry = z.infer<typeof auditEntrySchema>;
+
+export const auditPageSchema = z.object({
+  entries: z.array(auditEntrySchema),
+  /** Cursor for the next (older) page, or null when this is the last. */
+  next: z.string().nullable(),
+});
+export type AuditPage = z.infer<typeof auditPageSchema>;

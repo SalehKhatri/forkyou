@@ -9,3 +9,5 @@ export function createDb(url: string) {
 }
 
 export type Db = ReturnType<typeof createDb>["db"];
+/** A transaction from `db.transaction()`. Functions that accept `Db | Tx` can run inside one. */
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];

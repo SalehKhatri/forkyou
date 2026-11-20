@@ -1,5 +1,5 @@
 import { asc, eq, isNotNull } from "drizzle-orm";
-import type { Db } from "../db/client.js";
+import type { Db, Tx } from "../db/client.js";
 import { users } from "../db/schema.js";
 
 /**
@@ -9,7 +9,7 @@ import { users } from "../db/schema.js";
  * leaderboard cache next refreshes (under a minute). Returns false if no user has that username.
  */
 export async function hideFromLeaderboard(
-  db: Db,
+  db: Db | Tx,
   username: string,
   reason: string,
   now: Date = new Date(),
@@ -28,7 +28,7 @@ export async function hideFromLeaderboard(
 }
 
 /** Undoes `hideFromLeaderboard`. Returns false if no user has that username. */
-export async function showOnLeaderboard(db: Db, username: string): Promise<boolean> {
+export async function showOnLeaderboard(db: Db | Tx, username: string): Promise<boolean> {
   const rows = await db
     .update(users)
     .set({
