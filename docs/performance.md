@@ -198,12 +198,12 @@ tab, so there's no rollup for it (ADR 0006).
 With the `project` and `language` filters (same user, one of 12 projects and 6 languages), the
 heavy figures only aggregate the matching sessions, so filtered requests are cheaper:
 
-| Request (`range=365d`)                 | p50    | p95    |
-| -------------------------------------- | ------ | ------ |
-| no filter                              | 192 ms | 285 ms |
-| `project=project-3`                    | 40 ms  | 62 ms  |
-| `language=rust`                        | 40 ms  | 91 ms  |
-| `project=project-3&language=rust`      | 22 ms  | 55 ms  |
+| Request (`range=365d`)            | p50    | p95    |
+| --------------------------------- | ------ | ------ |
+| no filter                         | 192 ms | 285 ms |
+| `project=project-3`               | 40 ms  | 62 ms  |
+| `language=rust`                   | 40 ms  | 91 ms  |
+| `project=project-3&language=rust` | 22 ms  | 55 ms  |
 
 ### 800 clients, 10 minutes
 
