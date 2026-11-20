@@ -9,8 +9,8 @@ A rewrite for ForkYou 2.0.
 - The API key is stored in your OS keychain instead of plain extension storage.
 - File paths are no longer sent. Project names can be turned off with `forkyou.sendProjectName`.
 - New commands: **Open Dashboard** and **Show Log**.
-- Today's coding time in the status bar. It turns into a warning if your key is rejected or the
-  extension needs an update.
+- Today's coding time in the status bar, from the lightweight `/v1/me/today` endpoint. It turns
+  into a warning if your key is rejected or the extension needs an update.
 - Presence: while you're active, your profile shows you as coding now (and in which language, if
   you allow it in Settings). You go offline when you're idle, leave VS Code or sign out.
 - Time is counted only while you're active: a session ends at your last edit, selection or scroll

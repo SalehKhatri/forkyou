@@ -7,6 +7,7 @@ import {
   sessionBatchSchema,
   settingsUpdateSchema,
   statsQuerySchema,
+  todayQuerySchema,
 } from "@forkyou/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -24,7 +25,7 @@ import { createApiKey, listApiKeys, revokeApiKey } from "../services/auth.js";
 import { ingestSessions } from "../services/ingest.js";
 import { getLeaderboard } from "../services/leaderboard.js";
 import { listOnlineUsers, recordPresence } from "../services/presence.js";
-import { getUserStats } from "../services/stats.js";
+import { getTodaySeconds, getUserStats } from "../services/stats.js";
 
 const toMe = (u: AppEnv["Variables"]["user"]): MeResponse => ({
   id: u.id,
@@ -109,6 +110,18 @@ export const v1Routes = new Hono<AppEnv>()
       if (!updated) throw notFound("User");
       c.var.deps.leaderboardCache.clear();
       return c.json(toMe(updated));
+    },
+  )
+  .get(
+    "/me/today",
+    requireAuth("apiKey", "session"),
+    validate("query", todayQuerySchema),
+    async (c) => {
+      const { tz } = c.req.valid("query");
+      if (!isValidTimeZone(tz))
+        throw new AppError(400, "invalid_request", `Unknown time zone: ${tz}`);
+      const { db, now } = c.var.deps;
+      return c.json(await getTodaySeconds(db, c.var.user.id, tz, now()));
     },
   )
   .get(

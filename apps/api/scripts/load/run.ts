@@ -6,8 +6,8 @@
  *     pnpm --filter @forkyou/api exec tsx scripts/load/run.ts
  *
  * Each client follows the VS Code extension's schedule: presence every 60 s, an upload of 1-2
- * sessions every 3-5 minutes, and a stats request after each upload (the status bar). The web
- * side requests the leaderboard and the online list at fixed rates. Prints latency per endpoint
+ * sessions every 3-5 minutes, and a /v1/me/today request after each upload (the status bar).
+ * The web side requests the leaderboard and the online list at fixed rates. Prints latency per endpoint
  * every 30 s and a summary at the end.
  */
 import { randomUUID } from "node:crypto";
@@ -97,7 +97,7 @@ async function client(n: number) {
           headers,
           body: JSON.stringify({ sessions }),
         });
-        await call("GET /v1/me/stats", "/v1/me/stats?range=7d&tz=UTC", { headers });
+        await call("GET /v1/me/today", "/v1/me/today?tz=UTC", { headers });
       }
       await sleep(between(180_000, 300_000) / SPEED);
     }

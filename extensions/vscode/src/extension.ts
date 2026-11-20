@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { ingestResultSchema, statsResponseSchema } from "@forkyou/shared";
+import { ingestResultSchema, todayResponseSchema } from "@forkyou/shared";
 import * as vscode from "vscode";
 import { ApiClient } from "./api.js";
 import { isApiKeyFormat, resolveApiUrl, webUrl } from "./config.js";
@@ -135,13 +135,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const result = await api.request(
       "GET",
-      `/v1/me/stats?range=7d&tz=${encodeURIComponent(tz)}`,
+      `/v1/me/today?tz=${encodeURIComponent(tz)}`,
       key,
       undefined,
-      statsResponseSchema,
+      todayResponseSchema,
     );
     if (result.ok) {
-      status.show({ kind: "today", seconds: result.data.days.at(-1)?.seconds ?? 0 });
+      status.show({ kind: "today", seconds: result.data.seconds });
     } else if (result.failure === "unauthorized" || result.failure === "outdated") {
       status.show({ kind: "stopped", reason: result.failure });
     }

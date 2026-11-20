@@ -79,6 +79,11 @@ export const statsResponseSchema = z.object({
 });
 export type StatsResponse = z.infer<typeof statsResponseSchema>;
 
+/** Today's total, for an editor's status bar. Far cheaper than the full stats. */
+export const todayQuerySchema = z.object({ tz: z.string().max(64).default("UTC") });
+export const todayResponseSchema = z.object({ day: z.iso.date(), seconds: z.number().int() });
+export type TodayResponse = z.infer<typeof todayResponseSchema>;
+
 export const leaderboardQuerySchema = z.object({
   range: z.enum(LEADERBOARD_RANGES).default("week"),
 });
