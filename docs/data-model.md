@@ -8,6 +8,7 @@ erDiagram
   users ||--o{ api_keys : has
   users ||--o{ coding_sessions : records
   users ||--o{ daily_stats : "rolled up into"
+  users |o--o{ admin_actions : "acts / is acted on"
   users {
     uuid id PK
     bigint github_id UK
@@ -17,6 +18,15 @@ erDiagram
     timestamptz last_seen_at
     timestamptz offline_at
     timestamptz leaderboard_hidden_at
+    text staff_role "moderator | admin | null"
+  }
+  admin_actions {
+    uuid id PK
+    uuid actor_id FK "null once deleted"
+    uuid target_id FK "null once deleted"
+    text action
+    jsonb details
+    timestamptz created_at
   }
   auth_sessions {
     text id PK "sha256(cookie token)"
@@ -57,6 +67,12 @@ on each login. If a username moves to a different GitHub account, the stale row 
 `leaderboard_hidden_at` and `leaderboard_hidden_reason` are set by the maintainer to keep an account
 off the leaderboard ([ADR 0007](adr/0007-leaderboard-moderation.md)); the reason is in the user's data export and, if the maintainer chooses
 (`leaderboard_hidden_reason_visible`), on their dashboard ([ADR 0008](adr/0008-moderation-reason-visibility.md)).
+`staff_role` is `moderator`, `admin` or null, set by a super admin
+([ADR 0009](adr/0009-staff-roles.md)). Super admins aren't stored: `SUPER_ADMIN_GITHUB_IDS`
+overrides this column.
+
+**`admin_actions`**: the audit log of staff writes (ADR 0009). Each row has who acted, on whom, the
+`action` (`staff.appoint`, `staff.remove`) and its `details` (the role, the previous role).
 
 **`auth_sessions`**: browser logins. The primary key is the SHA-256 of the cookie token. 30-day
 sliding expiry. Expired rows are deleted when they're next presented, and the API deletes the rest
@@ -74,7 +90,9 @@ inserted. `pnpm --filter @forkyou/api db:rebuild-rollups` recomputes it from scr
 `started_at` for leaderboard windows. File paths are deliberately not stored.
 
 **Deleting an account** (`DELETE /v1/me`) deletes the `users` row; `on delete cascade` removes its
-`auth_sessions`, `api_keys`, `coding_sessions` and `daily_stats`. Nothing about the user is kept.
+`auth_sessions`, `api_keys`, `coding_sessions` and `daily_stats`. Rows in `admin_actions` that
+mention the account stay, so the staff record stays complete, but their `actor_id` or `target_id`
+becomes null, so they no longer say who.
 
 ## Invariants
 

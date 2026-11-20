@@ -1,3 +1,4 @@
+import type { StaffRole } from "@forkyou/shared";
 import type { Hono } from "hono";
 import type { Db } from "./db/client.js";
 import type { User } from "./db/schema.js";
@@ -21,6 +22,8 @@ export type AppEnv = {
     deps: Deps;
     /** Set by `requireAuth`. */
     user: User;
+    /** Set by `requireStaff`, on staff routes only. */
+    staffRole: StaffRole;
   };
 };
 

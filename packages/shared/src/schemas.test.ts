@@ -75,6 +75,14 @@ describe("meResponseSchema", () => {
     });
   });
 
+  it("treats a missing staffRole as not staff, for servers that predate staff roles", () => {
+    expect(meResponseSchema.parse(me).staffRole).toBeNull();
+  });
+
+  it("rejects an unknown staff role", () => {
+    expect(meResponseSchema.safeParse({ ...me, staffRole: "owner" }).success).toBe(false);
+  });
+
   it("keeps leaderboardHidden when the server sends it", () => {
     expect(meResponseSchema.parse({ ...me, leaderboardHidden: true }).leaderboardHidden).toBe(true);
   });

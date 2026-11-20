@@ -36,6 +36,13 @@
       "when": 1795029944027,
       "tag": "0004_leaderboard_hidden_reason_visible",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795214406106,
+      "tag": "0005_staff_roles",
+      "breakpoints": true
     }
   ]
 }

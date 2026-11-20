@@ -25,7 +25,7 @@ export function setupTestDb() {
   const { db, close } = createDb(url);
   beforeEach(async () => {
     await db.execute(
-      sql`truncate table daily_stats, coding_sessions, api_keys, auth_sessions, users restart identity cascade`,
+      sql`truncate table admin_actions, daily_stats, coding_sessions, api_keys, auth_sessions, users restart identity cascade`,
     );
   });
   afterAll(close);

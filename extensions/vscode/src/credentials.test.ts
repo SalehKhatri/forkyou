@@ -11,6 +11,7 @@ const ME = {
   showLanguage: true,
   leaderboardHidden: false,
   leaderboardHiddenReason: null,
+  staffRole: null,
   createdAt: "2026-11-16T10:00:00.000Z",
 };
 const OK = { ok: true, data: ME } as const;

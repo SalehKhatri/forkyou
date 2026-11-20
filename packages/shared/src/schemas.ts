@@ -1,9 +1,11 @@
 import { z } from "zod";
 import {
+  APPOINTABLE_STAFF_ROLES,
   EDITORS,
   LEADERBOARD_RANGES,
   LEADERBOARD_SIZE,
   LIMITS,
+  STAFF_ROLES,
   STATS_RANGES,
 } from "./constants.js";
 
@@ -148,6 +150,11 @@ export const meResponseSchema = z.object({
    * includes the reason. Defaults to null so clients accept servers that predate it.
    */
   leaderboardHiddenReason: z.string().nullable().default(null),
+  /**
+   * The signed-in user's own staff role (ADR 0009), or null. Never returned for anyone else.
+   * Defaults to null so clients accept servers that predate it.
+   */
+  staffRole: z.enum(STAFF_ROLES).nullable().default(null),
   createdAt: z.iso.datetime(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
@@ -214,3 +221,16 @@ export const apiErrorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }),
 });
 export type ApiError = z.infer<typeof apiErrorSchema>;
+
+// ---------------------------------------------------------------- staff (ADR 0009)
+
+/** PUT /v1/staff/members/:username: appoint someone, or change their role. */
+export const staffAppointSchema = z.object({ role: z.enum(APPOINTABLE_STAFF_ROLES) });
+export type StaffAppoint = z.infer<typeof staffAppointSchema>;
+
+export const staffMemberSchema = z.object({
+  username: z.string(),
+  avatarUrl: z.string().nullable(),
+  role: z.enum(STAFF_ROLES),
+});
+export type StaffMember = z.infer<typeof staffMemberSchema>;

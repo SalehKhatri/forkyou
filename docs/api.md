@@ -33,6 +33,8 @@ Every non-2xx response has this shape:
 | 400    | `invalid_request`       | Body or query failed validation. `message` says where.   |
 | 400    | `confirmation_mismatch` | `DELETE /v1/me`: the typed username didn't match         |
 | 401    | `unauthorized`          | Missing, unknown or revoked credentials                  |
+| 403    | `forbidden`             | Staff endpoint, and your role doesn't allow it           |
+| 403    | `outranked`             | Staff action on yourself or on equal or higher staff     |
 | 404    | `not_found`             | Unknown route or resource (including another user's key) |
 | 410    | `extension_outdated`    | A ForkYou 1.x endpoint. The client must update.          |
 | 413    | `payload_too_large`     | Body too large (sessions: 512 KB)                        |
@@ -147,6 +149,7 @@ The current user. Extensions use it to check a key during setup.
   "showLanguage": true,
   "leaderboardHidden": false,
   "leaderboardHiddenReason": null,
+  "staffRole": null,
   "createdAt": "…"
 }
 ```
@@ -156,6 +159,10 @@ The current user. Extensions use it to check a key during setup.
 `leaderboardHiddenReason` is the reason if the maintainer chose to show it, otherwise `null`
 ([ADR 0008](adr/0008-moderation-reason-visibility.md)). Both were added after the first 2.0
 release, so clients should treat missing values as `false` and `null`.
+
+`staffRole` is the signed-in user's own staff role, `"moderator"`, `"admin"` or `"super_admin"`,
+or `null` ([ADR 0009](adr/0009-staff-roles.md)). It's never returned for anyone else. Treat a
+missing value as `null`.
 
 ### `PATCH /v1/me/settings` (cookie)
 
@@ -265,6 +272,21 @@ the dashboard (ADR 0008). Never included: API key and login token hashes. Shape:
 | `GET /auth/github`          | Starts the OAuth flow (redirect)                                                           |
 | `GET /auth/github/callback` | OAuth callback → sets the session cookie → redirects to `/dashboard` (or `/login?error=…`) |
 | `POST /auth/logout`         | `204`. Deletes the session and clears the cookie.                                          |
+
+### Staff (cookie, staff only)
+
+Staff tools ([ADR 0009](adr/0009-staff-roles.md)). They take a browser session only: an API key
+gets `401`, even a super admin's. Someone without the right role gets `403 forbidden`, and staff
+can't act on their own account or on staff ranked at or above them (`403 outranked`).
+
+| Endpoint                             | Role        | Body / response                                                                                           |
+| ------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------- |
+| `GET /v1/staff/members`              | super admin | `[{ username, avatarUrl, role }]`, most trusted first, super admins included                              |
+| `PUT /v1/staff/members/:username`    | super admin | `{ "role": "moderator" \| "admin" }` → `{ username, avatarUrl, role }`. `404` if they've never signed in. |
+| `DELETE /v1/staff/members/:username` | super admin | `204`, or `404` if they aren't staff                                                                      |
+
+Super admins are set with `SUPER_ADMIN_GITHUB_IDS` and can't be appointed or removed through the
+API. Every change is recorded in the audit log.
 
 ### `GET /health`
 

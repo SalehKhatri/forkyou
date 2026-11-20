@@ -40,7 +40,7 @@ describe("ApiClient.me", () => {
     // Fields added later get their defaults, so older servers keep working.
     expect(result).toEqual({
       ok: true,
-      data: { ...ME, leaderboardHidden: false, leaderboardHiddenReason: null },
+      data: { ...ME, leaderboardHidden: false, leaderboardHiddenReason: null, staffRole: null },
     });
     expect(calls).toHaveLength(1);
     expect(calls[0]?.url).toBe("https://forkyou.example.com/api/v1/me");
