@@ -161,6 +161,16 @@ release, so clients should treat missing values as `false` and `null`.
 
 `{ "showPresence"?: boolean, "showLanguage"?: boolean }` → the updated user.
 
+### `GET /v1/me/today?tz=<IANA zone>` (API key or cookie)
+
+Seconds coded today, a calendar day in `tz` (default `UTC`; unknown zones are a `400`). It counts
+the same sessions as the last entry of `days` in `/v1/me/stats`, but it's one cheap query. Editors
+show it in the status bar and ask after every upload, so use this rather than the full stats.
+
+```json
+{ "day": "2026-11-20", "seconds": 5400 }
+```
+
 ### `GET /v1/me/stats?range=7d|30d|365d&tz=<IANA zone>` (API key or cookie)
 
 `tz` defaults to `UTC`; unknown zones are a `400`. `days` is dense (one entry per day, oldest first,

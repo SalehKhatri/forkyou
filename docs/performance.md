@@ -10,7 +10,8 @@ compared with earlier ones. How to rerun: [`apps/api/scripts/load/`](../apps/api
 - **Machine:** Docker on a laptop, with limits roughly like a small VPS: API 1 CPU / 1 GB, Postgres
   1 CPU / 2 GB (default Postgres settings, so 128 MB `shared_buffers`).
 - **Traffic** (`run.ts`): each simulated editor sends presence every 60 s and uploads 1–2 sessions
-  every 3–5 minutes, each followed by a stats request (the status bar). The web side requests the
+  every 3–5 minutes, each followed by a status-bar request (`/v1/me/stats?range=7d` until
+  2026-11-20, `/v1/me/today` since). The web side requests the
   leaderboard (random range) and the online list at fixed rates. 800 clients ≈ 800 people coding at
   the same time, about 23 requests per second.
 - `SPEED=5` multiplies every client's rate by 5, approximating 4,000 people coding at once.
@@ -172,6 +173,43 @@ exactly.
 The Postgres CPU peaks from leaderboard refreshes are gone (53% → 12% at 800 clients, 44% → 20%
 at 5×). The extra rollup write per upload doesn't show: upload p99 is 20–29 ms.
 
+## 2026-11-20 · Status bar moves to `/v1/me/today`
+
+Richer personal stats (heatmap, all-time streak, highlights, editors, lines) made
+`/v1/me/stats` heavier. The extension was asking for it after every upload but only shows today's
+total, so it now asks `/v1/me/today` instead: one indexed sum over today's sessions. The full
+stats are left to the dashboard.
+
+### One heavy user: a year at 6 h/day (32,850 sessions), 40 warm requests
+
+| Request                                     | p50    | p95    |
+| ------------------------------------------- | ------ | ------ |
+| `/v1/me/today`                              | 2.9 ms | 5.2 ms |
+| `/v1/me/stats?range=7d` with the new fields | 17 ms  | 19 ms  |
+| `/v1/me/stats?range=30d`                    | 40 ms  | 80 ms  |
+| `/v1/me/stats?range=365d`                   | 190 ms | 284 ms |
+
+At 7 days, about 15 ms of that is the all-time streak scan, which grows with every user's history.
+At 365 days, the heatmap (64 ms in Postgres) and the daily series (28 ms) dominate. Reading the
+sessions once in a single statement only brought the 365-day database time from about 140 to
+100 ms, because the cost is the per-session time-zone maths. That's acceptable for a dashboard
+tab, so there's no rollup for it (ADR 0006).
+
+### 800 clients, 10 minutes
+
+13,761 requests, no errors. CPU and memory weren't recorded for this run.
+
+| Endpoint                | n     | p50     | p95    | p99    | max    |
+| ----------------------- | ----- | ------- | ------ | ------ | ------ |
+| POST /v1/presence       | 7,999 | 7.5 ms  | 11 ms  | 15 ms  | 117 ms |
+| POST /v1/sessions       | 1,982 | 13.0 ms | 20 ms  | 30 ms  | 150 ms |
+| GET /v1/me/today        | 1,982 | 4.0 ms  | 6.1 ms | 7.9 ms | 69 ms  |
+| GET /v1/presence/online | 600   | 5.9 ms  | 8.4 ms | 14 ms  | 63 ms  |
+| GET /v1/leaderboard     | 1,198 | 3.4 ms  | 5.0 ms | 7.0 ms | 36 ms  |
+
+The status-bar request is cheaper than before (p50 5.5 → 4.0 ms, p99 12 → 7.9 ms), and the other
+endpoints match the Layer 2 run.
+
 ## Summary
 
 | Run                    | Requests | Errors | Worst p99 (endpoint)       | Postgres CPU avg / peak |
@@ -182,6 +220,7 @@ at 5×). The extra rollup write per upload doesn't show: upload p99 is 20–29 m
 | Layer 1 · 5×           | 34,444   | 0      | 52 ms (sessions)           | 15% / 44%               |
 | Layer 2 · 800 clients  | 13,805   | 0      | 29 ms (sessions)           | 5% / 12%                |
 | Layer 2 · 5×           | 34,428   | 0      | 20 ms (sessions, presence) | 14% / 20%               |
+| `/me/today` · 800      | 13,761   | 0      | 30 ms (sessions)           | not recorded            |
 
 **Conclusions:**
 

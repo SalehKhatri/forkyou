@@ -7,8 +7,8 @@ release that touches ingestion, presence, stats or the leaderboard.
 - `seed.sql` creates 2,000 users with API keys (`fy_load_1` … `fy_load_2000`) and 30 days of
   sessions, about 2.4 million rows.
 - `run.ts` simulates editor extensions on the VS Code extension's schedule (presence every
-  60 s, an upload every 3–5 minutes followed by a stats request) plus leaderboard and online-list
-  traffic, and prints latency per endpoint.
+  60 s, an upload every 3–5 minutes followed by a `/v1/me/today` request) plus leaderboard and
+  online-list traffic, and prints latency per endpoint.
 
 **Never run either against a database with real data.** Use the throwaway stack below.
 

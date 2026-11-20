@@ -1,4 +1,4 @@
-import type { StatsRange, StatsResponse } from "@forkyou/shared";
+import type { StatsRange, StatsResponse, TodayResponse } from "@forkyou/shared";
 import { sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { days } from "../lib/time.js";
@@ -55,4 +55,27 @@ export async function getUserStats(
     languages: [...languageRows],
     projects: [...projectRows],
   };
+}
+
+/**
+ * Seconds coded today, a calendar day in `tz`. Counts the same sessions as today's entry in
+ * getUserStats (by start time), with one indexed query, because editors ask after every upload.
+ */
+export async function getTodaySeconds(
+  db: Db,
+  userId: string,
+  tz: string,
+  now: Date = new Date(),
+): Promise<TodayResponse> {
+  const day = dayIn(now, tz);
+  // Today started at most 25 hours ago (a day with a DST change), so this bound never cuts it off;
+  // it only lets the start-time index skip older sessions.
+  const since = new Date(now.getTime() - days(2)).toISOString();
+  const [row] = await db.execute<{ seconds: number }>(sql`
+    select coalesce(sum(duration_seconds), 0)::int as seconds
+    from coding_sessions
+    where user_id = ${userId}
+      and started_at >= ${since}::timestamptz
+      and (started_at at time zone ${tz})::date = ${day}::date`);
+  return { day, seconds: row?.seconds ?? 0 };
 }

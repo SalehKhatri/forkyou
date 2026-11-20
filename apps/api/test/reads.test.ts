@@ -1,4 +1,4 @@
-import { sessionInputSchema } from "@forkyou/shared";
+import { sessionInputSchema, statsResponseSchema, todayResponseSchema } from "@forkyou/shared";
 import { describe, expect, it } from "vitest";
 import { ingestSessions } from "../src/services/ingest.js";
 import {
@@ -106,5 +106,65 @@ describe("GET /v1/me/stats", () => {
       );
     expect(await last(utc)).toEqual([{ day: "2026-11-16", seconds: 600 }]);
     expect(await last(ny)).toEqual([{ day: "2026-11-15", seconds: 600 }]);
+  });
+});
+
+describe("GET /v1/me/today", () => {
+  it("returns the seconds coded today in the requested time zone", async () => {
+    const { user, auth } = await createUserWithKey(db);
+    await seed(
+      user.id,
+      session({ endsMinutesAgo: 60, minutes: 10 }),
+      // Nov 16 00:30–00:40 UTC, which is still Nov 15 in New York.
+      session({ endsMinutesAgo: 11 * 60 + 20, minutes: 10 }),
+      session({ endsMinutesAgo: 24 * 60, minutes: 10 }),
+    );
+    const get = async (tz: string) =>
+      todayResponseSchema.parse(
+        await (await makeApp(db).request(`/v1/me/today?tz=${tz}`, { headers: auth })).json(),
+      );
+
+    expect(await get("UTC")).toEqual({ day: "2026-11-16", seconds: 1200 });
+    expect(await get("America/New_York")).toEqual({ day: "2026-11-16", seconds: 600 });
+  });
+
+  it("matches today's entry in the full stats", async () => {
+    const { user, cookie } = await createUserWithSession(db);
+    await seed(user.id, session({ endsMinutesAgo: 30, minutes: 7 }));
+    const app = makeApp(db);
+
+    const today = await (
+      await app.request("/v1/me/today?tz=Asia/Kolkata", { headers: cookie })
+    ).json();
+    const stats = statsResponseSchema.parse(
+      await (await app.request("/v1/me/stats?tz=Asia/Kolkata", { headers: cookie })).json(),
+    );
+
+    expect(today).toEqual(stats.days.at(-1));
+  });
+
+  it("is zero before any coding today", async () => {
+    const { auth } = await createUserWithKey(db);
+
+    const res = await makeApp(db).request("/v1/me/today", { headers: auth });
+
+    expect(await res.json()).toEqual({ day: "2026-11-16", seconds: 0 });
+  });
+
+  it("rejects an unknown time zone", async () => {
+    const { auth } = await createUserWithKey(db);
+
+    const res = await makeApp(db).request("/v1/me/today?tz=Mars/Olympus", { headers: auth });
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: { code: "invalid_request", message: "Unknown time zone: Mars/Olympus" },
+    });
+  });
+
+  it("needs an API key or a signed-in session", async () => {
+    const res = await makeApp(db).request("/v1/me/today");
+
+    expect(res.status).toBe(401);
   });
 });

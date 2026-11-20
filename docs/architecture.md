@@ -93,6 +93,8 @@ sessions can't both pass the overlap check.
 
 - **Stats** (`/v1/me/stats`): aggregated on request from `coding_sessions` for the signed-in user,
   bucketed by day in the viewer's time zone (sent by the browser). Projects are private to the owner.
+  Editors don't request it: their status bar asks `/v1/me/today` after every upload, which is one
+  indexed sum, so the dashboard-only stats can afford heavier queries.
 - **Leaderboard** (`/v1/leaderboard`): rolling 1/7/30-day windows, top 100. The query is the most
   expensive read, so requests never wait for it: the API caches each range in-process for 30 s,
   serves the stale copy while one background refresh runs, and warms all ranges at startup. The
