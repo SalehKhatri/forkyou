@@ -115,8 +115,9 @@ Run a single test file: `pnpm --filter @forkyou/api exec vitest run test/ingest.
 
 ## Don'ts
 
-- Don't add features that 2.0 deliberately cut (colleges, devlogs, experience, "wrapped", roles)
-  without an ADR. Keeping scope small is a goal.
+- Don't add features that 2.0 deliberately cut (colleges, devlogs, experience, "wrapped",
+  configurable roles) without an ADR. Keeping scope small is a goal. Staff roles are fixed in code
+  (ADR 0009); don't make them configurable or add new ones without a new ADR.
 - Don't reintroduce shared-secret request signing in extensions. Secrets shipped in a client are
   public (ADR 0002).
 - Don't add Redis, queues or more rollup tables until there's a measured need (ADR 0003, ADR 0006).
