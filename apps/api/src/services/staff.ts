@@ -6,14 +6,18 @@ import {
   STAFF_ROLES,
   type StaffMember,
   type StaffRole,
+  type StaffUser,
+  type StatsQuery,
 } from "@forkyou/shared";
-import { asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Db, Tx } from "../db/client.js";
-import { adminActions, type User, users } from "../db/schema.js";
+import { adminActions, apiKeys, type User, users } from "../db/schema.js";
 import type { Env } from "../env.js";
 import { outranks, staffRoleOf } from "../lib/staff.js";
+import { days } from "../lib/time.js";
 import { hideFromLeaderboard, listHiddenFromLeaderboard, showOnLeaderboard } from "./moderation.js";
+import { getUserStats } from "./stats.js";
 
 /** The staff member acting, as resolved by `requireStaff`. */
 export type Actor = { id: string; role: StaffRole };
@@ -232,4 +236,96 @@ export async function readAudit(
     entries: page.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
     next: rows.length > limit && last ? encodeCursor(last.createdAt, last.id) : null,
   };
+}
+
+const iso = (d: Date | null) => d?.toISOString() ?? null;
+
+/**
+ * An account as staff see it when reviewing it: profile, moderation state, key activity, recent
+ * totals and stats in `tz`. Leaves out project names (private to their owner, ADR 0009), API keys
+ * and tokens. Any staff member can look up any account; looking isn't acting. Returns null for an
+ * unknown username.
+ */
+export async function lookupUser(
+  db: Db,
+  env: Env,
+  username: string,
+  { range, tz }: Pick<StatsQuery, "range" | "tz">,
+  now: Date,
+): Promise<StaffUser | null> {
+  const [user] = await db.select().from(users).where(eq(users.username, username));
+  if (!user) return null;
+
+  const window = (n: number) => new Date(now.getTime() - days(n)).toISOString();
+  const [[keys], [recent], stats] = await Promise.all([
+    db
+      .select({
+        active: sql<number>`count(*)::int`,
+        lastUsedAt: sql<Date | string | null>`max(${apiKeys.lastUsedAt})`,
+      })
+      .from(apiKeys)
+      .where(and(eq(apiKeys.userId, user.id), isNull(apiKeys.revokedAt))),
+    db.execute<{ day: number; week: number; month: number }>(sql`
+      select coalesce(sum(duration_seconds) filter (where started_at >= ${window(1)}::timestamptz), 0)::int as day,
+             coalesce(sum(duration_seconds) filter (where started_at >= ${window(7)}::timestamptz), 0)::int as week,
+             coalesce(sum(duration_seconds), 0)::int as month
+      from coding_sessions
+      where user_id = ${user.id} and started_at >= ${window(30)}::timestamptz`),
+    getUserStats(db, user.id, { range, tz }, now),
+  ]);
+
+  return {
+    username: user.username,
+    name: user.name,
+    avatarUrl: user.avatarUrl,
+    createdAt: user.createdAt.toISOString(),
+    lastSeenAt: iso(user.lastSeenAt),
+    staffRole: staffRoleOf(user, env),
+    leaderboard: {
+      hidden: user.leaderboardHiddenAt !== null,
+      hiddenAt: iso(user.leaderboardHiddenAt),
+      reason: user.leaderboardHiddenReason,
+      reasonVisible: user.leaderboardHiddenReasonVisible,
+    },
+    apiKeys: {
+      active: keys?.active ?? 0,
+      // A raw max() isn't mapped by Drizzle, so normalise whatever the driver returns.
+      lastUsedAt: keys?.lastUsedAt ? new Date(keys.lastUsedAt).toISOString() : null,
+    },
+    recent: recent ?? { day: 0, week: 0, month: 0 },
+    stats: { ...stats, projects: [] },
+  };
+}
+
+/**
+ * Revokes every active API key of `username`, for a compromised or abusive account. Their editors
+ * stop uploading until they create a new key; nothing else changes. Records how many were revoked.
+ * Revoking an account with no active keys changes and records nothing.
+ */
+export async function revokeUserKeys(
+  db: Db,
+  env: Env,
+  actor: Actor,
+  username: string,
+  now: Date,
+): Promise<{ ok: true; revoked: number } | { ok: false; refusal: Refusal }> {
+  return db.transaction(async (tx) => {
+    const locked = await lockTarget(tx, env, actor, username);
+    if (!locked.ok) return locked;
+    const revoked = await tx
+      .update(apiKeys)
+      .set({ revokedAt: now })
+      .where(and(eq(apiKeys.userId, locked.target.id), isNull(apiKeys.revokedAt)))
+      .returning({ id: apiKeys.id });
+    if (revoked.length > 0) {
+      await tx.insert(adminActions).values({
+        createdAt: now,
+        actorId: actor.id,
+        targetId: locked.target.id,
+        action: "keys.revoke",
+        details: { count: revoked.length },
+      });
+    }
+    return { ok: true, revoked: revoked.length };
+  });
 }
