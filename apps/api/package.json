@@ -22,7 +22,6 @@
     "@forkyou/shared": "workspace:^",
     "@hono/node-server": "^2.1",
     "@hono/zod-validator": "^0.9",
-    "arctic": "^3.7",
     "drizzle-orm": "^0.45",
     "hono": "^4.13",
     "postgres": "^4.1",
