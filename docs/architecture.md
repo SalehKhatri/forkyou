@@ -109,8 +109,11 @@ sessions can't both pass the overlap check.
 | Inflated time   | Server-side plausibility: no overlapping or future sessions, bounded length and age                           |
 | Key leaks       | `fy_` prefix (easy to spot in scans), per-device keys, revocation, `last_used_at`                             |
 | Old 1.x clients | Legacy endpoints answer `410 Gone` with an update message                                                     |
+| Staff misuse    | Three fixed roles, rank checks, cookie-only staff endpoints, an audit log of every action (ADR 0009)          |
 
 ## What's deliberately not here
 
-Colleges, devlogs, work experience, "Wrapped", roles/RBAC and non-GitHub logins were cut from 2.0
-to keep the core small and reliable. Add them back only with an ADR.
+Colleges, devlogs, work experience, "Wrapped", configurable roles/RBAC and non-GitHub logins were
+cut from 2.0 to keep the core small and reliable. Add them back only with an ADR. Staff are the one
+exception: three fixed roles, a super admin, admins and moderators
+([ADR 0009](adr/0009-staff-roles.md)).

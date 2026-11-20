@@ -59,6 +59,11 @@ files beyond the project (workspace folder) name.
 Users can download everything stored about them, or delete their account and all of it, under
 Settings → Your data on the website (`GET /v1/me/export`, `DELETE /v1/me`).
 
+ForkYou staff (the maintainer and the moderators they appoint, [ADR 0009](adr/0009-staff-roles.md))
+can see a user's coding totals, languages and activity times, to review accounts for the
+leaderboard. They can't see project names, API keys or tokens, and every action they take is
+recorded.
+
 ## Migrating from 1.x
 
 1.x plugins called `/activities/sync`, `/verify-key`, `/user/status` and `/ping`, and signed requests
