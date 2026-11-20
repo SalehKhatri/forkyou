@@ -1,8 +1,14 @@
-import { auditQuerySchema, leaderboardHideSchema, staffAppointSchema } from "@forkyou/shared";
+import {
+  auditQuerySchema,
+  leaderboardHideSchema,
+  staffAppointSchema,
+  staffUserQuerySchema,
+} from "@forkyou/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import type { AppEnv } from "../context.js";
 import { AppError, notFound } from "../lib/errors.js";
+import { isValidTimeZone } from "../lib/time.js";
 import { validate } from "../lib/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireStaff } from "../middleware/staff.js";
@@ -11,9 +17,11 @@ import {
   hideAccount,
   listHiddenAccounts,
   listStaff,
+  lookupUser,
   type Refusal,
   readAudit,
   removeStaff,
+  revokeUserKeys,
   showAccount,
 } from "../services/staff.js";
 
@@ -94,6 +102,28 @@ export const staffRoutes = new Hono<AppEnv>()
     if (!result.ok) refused(result.refusal);
     leaderboardCache.clear();
     return c.body(null, 204);
+  })
+
+  // ------------------------------------------------------------ accounts
+  .get(
+    "/users/:username",
+    requireStaff("review"),
+    validate("query", staffUserQuerySchema),
+    async (c) => {
+      const query = c.req.valid("query");
+      if (!isValidTimeZone(query.tz))
+        throw new AppError(400, "invalid_request", `Unknown time zone: ${query.tz}`);
+      const { db, env, now } = c.var.deps;
+      const user = await lookupUser(db, env, c.req.param("username"), query, now());
+      if (!user) throw notFound("User");
+      return c.json(user);
+    },
+  )
+  .post("/users/:username/revoke-keys", requireStaff("revokeKeys"), async (c) => {
+    const { db, env, now } = c.var.deps;
+    const result = await revokeUserKeys(db, env, actor(c), c.req.param("username"), now());
+    if (!result.ok) refused(result.refusal);
+    return c.json({ revoked: result.revoked });
   })
 
   // ------------------------------------------------------------ audit log

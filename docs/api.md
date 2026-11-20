@@ -279,18 +279,24 @@ Staff tools ([ADR 0009](adr/0009-staff-roles.md)). They take a browser session o
 gets `401`, even a super admin's. Someone without the right role gets `403 forbidden`, and staff
 can't act on their own account or on staff ranked at or above them (`403 outranked`).
 
-| Endpoint                                              | Role        | Body / response                                                                                           |
-| ----------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
-| `GET /v1/staff/members`                               | super admin | `[{ username, avatarUrl, role }]`, most trusted first, super admins included                              |
-| `PUT /v1/staff/members/:username`                     | super admin | `{ "role": "moderator" \| "admin" }` → `{ username, avatarUrl, role }`. `404` if they've never signed in. |
-| `DELETE /v1/staff/members/:username`                  | super admin | `204`, or `404` if they aren't staff                                                                      |
-| `GET /v1/staff/leaderboard-hidden`                    | moderator   | `[{ username, hiddenAt, reason, reasonVisible }]`, oldest first                                           |
-| `PUT /v1/staff/users/:username/leaderboard-hidden`    | moderator   | `{ "reason": "…", "showReason"?: false }` → `204`. Hiding again replaces the reason.                      |
-| `DELETE /v1/staff/users/:username/leaderboard-hidden` | moderator   | `204`, or `404` if the account isn't hidden                                                               |
-| `GET /v1/staff/audit?limit=50&before=<cursor>`        | admin       | `{ entries: [{ id, action, actor, target, details, createdAt }], next }`, newest first                    |
+| Endpoint                                              | Role        | Body / response                                                                                                                                                                                                                    |
+| ----------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/staff/members`                               | super admin | `[{ username, avatarUrl, role }]`, most trusted first, super admins included                                                                                                                                                       |
+| `PUT /v1/staff/members/:username`                     | super admin | `{ "role": "moderator" \| "admin" }` → `{ username, avatarUrl, role }`. `404` if they've never signed in.                                                                                                                          |
+| `DELETE /v1/staff/members/:username`                  | super admin | `204`, or `404` if they aren't staff                                                                                                                                                                                               |
+| `GET /v1/staff/leaderboard-hidden`                    | moderator   | `[{ username, hiddenAt, reason, reasonVisible }]`, oldest first                                                                                                                                                                    |
+| `PUT /v1/staff/users/:username/leaderboard-hidden`    | moderator   | `{ "reason": "…", "showReason"?: false }` → `204`. Hiding again replaces the reason.                                                                                                                                               |
+| `DELETE /v1/staff/users/:username/leaderboard-hidden` | moderator   | `204`, or `404` if the account isn't hidden                                                                                                                                                                                        |
+| `GET /v1/staff/users/:username?range=7d&tz=<zone>`    | moderator   | The account for review: profile, `staffRole`, `leaderboard` (hidden, reason, visibility), `apiKeys` (active count, last use), `recent` seconds (24 h / 7 d / 30 d) and `stats` as in `/v1/me/stats`, but `projects` is always `[]` |
+| `POST /v1/staff/users/:username/revoke-keys`          | admin       | `{ "revoked": 2 }`. Revokes every active key; `0` changes and records nothing.                                                                                                                                                     |
+| `GET /v1/staff/audit?limit=50&before=<cursor>`        | admin       | `{ entries: [{ id, action, actor, target, details, createdAt }], next }`, newest first                                                                                                                                             |
 
 "Role" is the least trusted role allowed; more trusted roles can too. Super admins are set with
 `SUPER_ADMIN_GITHUB_IDS` and can't be appointed or removed through the API.
+
+Lookup never returns project names (they're private to their owner), API keys or token hashes.
+Any staff member can look up any account, since looking isn't acting. Revoked keys stop working
+immediately; the user creates a new one in Settings.
 
 Hiding and showing take effect on the public leaderboard immediately. The rules are the same as the
 CLI's ([ADR 0007](adr/0007-leaderboard-moderation.md), [ADR 0008](adr/0008-moderation-reason-visibility.md)).

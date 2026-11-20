@@ -275,3 +275,30 @@ export const auditPageSchema = z.object({
   next: z.string().nullable(),
 });
 export type AuditPage = z.infer<typeof auditPageSchema>;
+
+/** GET /v1/staff/users/:username takes the stats range and time zone, but no project filter. */
+export const staffUserQuerySchema = statsQuerySchema.pick({ range: true, tz: true });
+
+/**
+ * What staff see when reviewing an account (ADR 0009). Never project names, API keys or tokens:
+ * `stats.projects` is always empty.
+ */
+export const staffUserSchema = z.object({
+  username: z.string(),
+  name: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+  lastSeenAt: z.iso.datetime().nullable(),
+  staffRole: z.enum(STAFF_ROLES).nullable(),
+  leaderboard: z.object({
+    hidden: z.boolean(),
+    hiddenAt: z.iso.datetime().nullable(),
+    reason: z.string().nullable(),
+    reasonVisible: z.boolean(),
+  }),
+  apiKeys: z.object({ active: z.number().int(), lastUsedAt: z.iso.datetime().nullable() }),
+  /** Seconds in the last 24 hours, 7 days and 30 days: the leaderboard's windows. */
+  recent: z.object({ day: z.number().int(), week: z.number().int(), month: z.number().int() }),
+  stats: statsResponseSchema,
+});
+export type StaffUser = z.infer<typeof staffUserSchema>;

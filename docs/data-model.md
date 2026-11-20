@@ -73,8 +73,8 @@ overrides this column.
 
 **`admin_actions`**: the audit log of staff writes (ADR 0009). Each row has who acted, on whom, the
 `action` and its `details`: `staff.appoint` (`role`, `previousRole`), `staff.remove`
-(`previousRole`), `leaderboard.hide` (`reason`, `showReason`) and `leaderboard.show`
-(`previousReason`). `created_at` comes from the API's clock, not the database's, so it has
+(`previousRole`), `leaderboard.hide` (`reason`, `showReason`), `leaderboard.show`
+(`previousReason`) and `keys.revoke` (`count`). `created_at` comes from the API's clock, not the database's, so it has
 millisecond precision and the audit cursor matches it exactly. The `leaderboard` CLI writes no audit
 rows: it runs with direct database access, which can bypass any record anyway.
 
