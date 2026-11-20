@@ -105,12 +105,14 @@ In production (`NODE_ENV=production`) the API writes one JSON object per line to
 it prints short readable lines. Logs never contain API keys, cookies, request bodies, query strings,
 IP addresses, usernames or user ids.
 
-| `msg`                        | Fields                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------- |
-| `request`                    | `method`, `route` (pattern, e.g. `/v1/keys/:id`), `status`, `ms`, `requestId` |
-| `ingest`                     | `accepted`, `duplicates`, `rejected` (count per reason), `requestId`          |
-| `unhandled error`            | `error` (stack trace), `requestId`; the client got a `500`                    |
-| `leaderboard refresh failed` | `range`, `error`; the stale leaderboard is still being served                 |
+| `msg`                            | Fields                                                                        |
+| -------------------------------- | ----------------------------------------------------------------------------- |
+| `request`                        | `method`, `route` (pattern, e.g. `/v1/keys/:id`), `status`, `ms`, `requestId` |
+| `ingest`                         | `accepted`, `duplicates`, `rejected` (count per reason), `requestId`          |
+| `unhandled error`                | `error` (stack trace), `requestId`; the client got a `500`                    |
+| `leaderboard refresh failed`     | `range`, `error`; the stale leaderboard is still being served                 |
+| `deleted expired login sessions` | `count`; the hourly sweep of expired browser logins                           |
+| `expired session sweep failed`   | `error`; retried at the next hourly sweep                                     |
 
 `/health` isn't logged. A `500` response's request id matches its `unhandled error` line.
 

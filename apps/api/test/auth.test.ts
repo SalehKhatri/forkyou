@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { users } from "../src/db/schema.js";
-import { upsertGithubUser } from "../src/services/auth.js";
-import { fakeGithub, makeApp, setupTestDb } from "./helpers.js";
+import { authSessions, users } from "../src/db/schema.js";
+import {
+  createAuthSession,
+  deleteExpiredAuthSessions,
+  upsertGithubUser,
+  validateAuthSession,
+} from "../src/services/auth.js";
+import { createUser, fakeGithub, makeApp, NOW, setupTestDb } from "./helpers.js";
 
 const db = setupTestDb();
 const app = makeApp(db);
@@ -96,5 +101,32 @@ describe("GitHub login", () => {
   it("returns 503 when OAuth isn't configured", async () => {
     const res = await makeApp(db, { github: null }).request("/auth/github");
     expect(res.status).toBe(503);
+  });
+});
+
+describe("deleteExpiredAuthSessions", () => {
+  const daysAfterNow = (n: number) => new Date(NOW.getTime() + n * 86_400_000);
+
+  it("deletes every expired login session, for all users, and keeps live ones", async () => {
+    const ada = await createUser(db, "ada");
+    const linus = await createUser(db, "linus");
+    await createAuthSession(db, ada.id, daysAfterNow(-40)); // expired 10 days ago
+    await createAuthSession(db, linus.id, daysAfterNow(-31)); // expired 1 day ago
+    const live = await createAuthSession(db, ada.id, NOW);
+
+    const deleted = await deleteExpiredAuthSessions(db, NOW);
+
+    expect(deleted).toBe(2);
+    const left = await db.select({ userId: authSessions.userId }).from(authSessions);
+    expect(left).toEqual([{ userId: ada.id }]);
+    expect(await validateAuthSession(db, live.token, NOW)).not.toBeNull();
+  });
+
+  it("deletes a session the moment it expires, as validateAuthSession does", async () => {
+    const ada = await createUser(db, "ada");
+    await createAuthSession(db, ada.id, daysAfterNow(-30)); // expires at NOW
+
+    expect(await deleteExpiredAuthSessions(db, new Date(NOW.getTime() - 1))).toBe(0);
+    expect(await deleteExpiredAuthSessions(db, NOW)).toBe(1);
   });
 });
