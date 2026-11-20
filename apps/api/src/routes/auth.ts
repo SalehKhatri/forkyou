@@ -1,7 +1,7 @@
-import { generateState } from "arctic";
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { AppEnv } from "../context.js";
+import { generateToken } from "../lib/crypto.js";
 import { AppError } from "../lib/errors.js";
 import { sessionCookieName, sessionCookieOptions } from "../middleware/auth.js";
 import { createAuthSession, deleteAuthSession, upsertGithubUser } from "../services/auth.js";
@@ -13,7 +13,7 @@ export const authRoutes = new Hono<AppEnv>()
   .get("/github", (c) => {
     const { github, env } = c.var.deps;
     if (!github) throw new AppError(503, "oauth_unconfigured", "GitHub login is not configured");
-    const state = generateState();
+    const state = generateToken();
     setCookie(c, STATE_COOKIE, state, {
       httpOnly: true,
       secure: env.NODE_ENV === "production",

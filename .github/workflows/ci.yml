@@ -42,6 +42,10 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
+      # Packages the VS Code extension and checks the .vsix: the files it ships, that every
+      # dependency is bundled, and that the bundle loads. See extensions/vscode/scripts.
+      - run: pnpm --filter forkyou package
+      - run: pnpm --filter forkyou check:package
 
   docker:
     name: Docker images build
