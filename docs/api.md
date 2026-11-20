@@ -163,8 +163,9 @@ release, so clients should treat missing values as `false` and `null`.
 
 ### `GET /v1/me/stats?range=7d|30d|365d&tz=<IANA zone>` (API key or cookie)
 
-`tz` defaults to `UTC`; unknown zones are a `400`. `days` is dense (one entry per day, oldest first,
-zero-filled). Languages and projects return the top 20.
+`tz` defaults to `UTC`; unknown zones are a `400`. Everything covers the same calendar days in `tz`:
+today and the 6, 29 or 364 days before it. A session counts toward the day it started. `days` is
+dense (one entry per day, oldest first, zero-filled). Languages and projects return the top 20.
 
 ```json
 {
