@@ -1,4 +1,4 @@
-import { LEADERBOARD_RANGES, type StaffOverview } from "@forkyou/shared";
+import { LEADERBOARD_RANGES, type ReviewQueueEntry, type StaffOverview } from "@forkyou/shared";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app.js";
 import { createDb } from "./db/client.js";
@@ -29,12 +29,16 @@ const leaderboardCache = new TtlCache<unknown>(30_000, {
 const overviewCache = new TtlCache<StaffOverview>(60_000, {
   onError: (_key, error) => log.error("staff overview refresh failed", error),
 });
+const reviewQueueCache = new TtlCache<ReviewQueueEntry[]>(60_000, {
+  onError: (_key, error) => log.error("review queue refresh failed", error),
+});
 const app = createApp({
   db,
   env,
   github,
   leaderboardCache,
   overviewCache,
+  reviewQueueCache,
   log,
   now: () => new Date(),
 });

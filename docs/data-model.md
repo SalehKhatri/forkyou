@@ -74,7 +74,8 @@ overrides this column.
 **`admin_actions`**: the audit log of staff writes (ADR 0009). Each row has who acted, on whom, the
 `action` and its `details`: `staff.appoint` (`role`, `previousRole`), `staff.remove`
 (`previousRole`), `leaderboard.hide` (`reason`, `showReason`), `leaderboard.show`
-(`previousReason`) and `keys.revoke` (`count`). `created_at` comes from the API's clock, not the database's, so it has
+(`previousReason`), `keys.revoke` (`count`) and `review.dismiss` (`note`, if given). The review
+queue reads the newest `review.dismiss` per account to decide which flags it has already covered. `created_at` comes from the API's clock, not the database's, so it has
 millisecond precision and the audit cursor matches it exactly. The `leaderboard` CLI writes no audit
 rows: it runs with direct database access, which can bypass any record anyway.
 

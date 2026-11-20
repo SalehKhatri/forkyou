@@ -1,4 +1,4 @@
-import type { StaffOverview, StaffRole } from "@forkyou/shared";
+import type { ReviewQueueEntry, StaffOverview, StaffRole } from "@forkyou/shared";
 import type { Hono } from "hono";
 import type { Db } from "./db/client.js";
 import type { User } from "./db/schema.js";
@@ -15,6 +15,8 @@ export type Deps = {
   leaderboardCache: TtlCache<unknown>;
   /** The staff overview, cached for a minute: it aggregates the whole service. */
   overviewCache: TtlCache<StaffOverview>;
+  /** The staff review queue, cached for a minute: it reads every session of the last week. */
+  reviewQueueCache: TtlCache<ReviewQueueEntry[]>;
   log: Logger;
   now: () => Date;
 };

@@ -1,6 +1,7 @@
 import {
   auditQuerySchema,
   leaderboardHideSchema,
+  reviewDismissSchema,
   staffAppointSchema,
   staffUserQuerySchema,
 } from "@forkyou/shared";
@@ -13,8 +14,10 @@ import { validate } from "../lib/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireStaff } from "../middleware/staff.js";
 import { getOverview } from "../services/overview.js";
+import { getReviewQueue } from "../services/review.js";
 import {
   appointStaff,
+  dismissReview,
   hideAccount,
   listHiddenAccounts,
   listStaff,
@@ -94,6 +97,7 @@ export const staffRoutes = new Hono<AppEnv>()
       const result = await hideAccount(db, env, actor(c), c.req.param("username"), body, now());
       if (!result.ok) refused(result.refusal);
       leaderboardCache.clear();
+      c.var.deps.reviewQueueCache.clear();
       return c.body(null, 204);
     },
   )
@@ -110,6 +114,25 @@ export const staffRoutes = new Hono<AppEnv>()
     const { db, env, now, overviewCache } = c.var.deps;
     return c.json(await overviewCache.getOrSet("overview", () => getOverview(db, env, now())));
   })
+
+  // ------------------------------------------------------------ review queue
+  .get("/review-queue", requireStaff("review"), async (c) => {
+    const { db, now, reviewQueueCache } = c.var.deps;
+    return c.json(await reviewQueueCache.getOrSet("queue", () => getReviewQueue(db, now())));
+  })
+  .post(
+    "/users/:username/review-dismiss",
+    requireStaff("moderate"),
+    validate("json", reviewDismissSchema),
+    async (c) => {
+      const { db, env, now, reviewQueueCache } = c.var.deps;
+      const { note } = c.req.valid("json");
+      const result = await dismissReview(db, env, actor(c), c.req.param("username"), note, now());
+      if (!result.ok) refused(result.refusal);
+      reviewQueueCache.clear();
+      return c.body(null, 204);
+    },
+  )
 
   // ------------------------------------------------------------ accounts
   .get(
