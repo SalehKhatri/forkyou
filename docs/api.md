@@ -183,9 +183,32 @@ dense (one entry per day, oldest first, zero-filled). Languages and projects ret
   "totalSeconds": 14460,
   "days": [{ "day": "2026-11-10", "seconds": 0 }],
   "languages": [{ "language": "python", "seconds": 3360 }],
-  "projects": [{ "project": "forkyou", "seconds": 6900 }]
+  "projects": [{ "project": "forkyou", "seconds": 6900 }],
+  "heatmap": [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 300, 600, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+  "streak": { "current": 4, "longest": 19 },
+  "highlights": {
+    "activeDays": 5,
+    "dailyAverageSeconds": 2892,
+    "bestDay": { "day": "2026-11-14", "seconds": 6900 }
+  },
+  "editors": [{ "editor": "vscode", "seconds": 14460 }],
+  "lines": { "added": 1840, "removed": 620 }
 }
 ```
+
+- `heatmap`: seconds per local weekday and hour, 7 rows (Monday first) of 24. A session is split
+  across the hours it spans, so 10:55–11:10 adds 300 to 10:00 and 600 to 11:00. Values are rounded
+  to the second, so the cells can differ from `totalSeconds` by a few seconds. (The example shows
+  one row.)
+- `streak`: consecutive local days with any coding, over **all time**, not just `range`. Today
+  isn't over yet, so a streak that reached yesterday is still `current`.
+- `highlights`: `activeDays` are days in the range with any coding. `dailyAverageSeconds` averages
+  over those days, not every day in the range. `bestDay` is the day with the most time (the
+  earliest on a tie), or `null` if there was none.
+- `editors`: every editor, most time first. `lines`: lines added and removed in the range.
+
+These five fields were added after 2.0. `packages/shared` gives them empty defaults, so clients
+also accept responses from older servers.
 
 ### `DELETE /v1/me` (cookie)
 

@@ -5,6 +5,7 @@ import {
   presenceInputSchema,
   sessionBatchSchema,
   sessionInputSchema,
+  statsResponseSchema,
 } from "./schemas.js";
 
 const valid = {
@@ -76,5 +77,31 @@ describe("meResponseSchema", () => {
 
   it("keeps leaderboardHidden when the server sends it", () => {
     expect(meResponseSchema.parse({ ...me, leaderboardHidden: true }).leaderboardHidden).toBe(true);
+  });
+});
+
+describe("statsResponseSchema", () => {
+  it("fills in the fields added after 2.0 when an older server leaves them out", () => {
+    const parsed = statsResponseSchema.parse({
+      range: "7d",
+      totalSeconds: 0,
+      days: [],
+      languages: [],
+      projects: [],
+    });
+
+    expect(parsed.heatmap).toHaveLength(7);
+    expect(parsed.heatmap[6]).toEqual(Array(24).fill(0));
+    expect(parsed.streak).toEqual({ current: 0, longest: 0 });
+    expect(parsed.highlights).toEqual({ activeDays: 0, dailyAverageSeconds: 0, bestDay: null });
+    expect(parsed.editors).toEqual([]);
+    expect(parsed.lines).toEqual({ added: 0, removed: 0 });
+  });
+
+  it("rejects a heatmap that isn't 7 days of 24 hours", () => {
+    const base = { range: "7d", totalSeconds: 0, days: [], languages: [], projects: [] };
+    const short = Array.from({ length: 7 }, () => Array(23).fill(0));
+
+    expect(statsResponseSchema.safeParse({ ...base, heatmap: short }).success).toBe(false);
   });
 });
