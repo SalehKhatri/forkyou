@@ -11,9 +11,12 @@ import {
 
 const db = setupTestDb();
 
+// The username checks use "linus" because its letters can't occur in the hex request ids. With
+// "ada" the tests failed whenever a random id happened to contain those three hex digits.
+
 describe("request logging", () => {
   it("logs method, route, status, duration and request id, and nothing personal", async () => {
-    const { auth } = await createUserWithKey(db, "ada");
+    const { auth } = await createUserWithKey(db, "linus");
     const log = memoryLogger();
 
     await makeApp(db, { log }).request("/v1/me/stats?range=7d&tz=Europe/Berlin", {
@@ -35,7 +38,7 @@ describe("request logging", () => {
     const written = JSON.stringify(log.lines);
     expect(written).not.toContain(auth.Authorization.slice("Bearer ".length));
     expect(written).not.toContain("Berlin");
-    expect(written).not.toContain("ada");
+    expect(written).not.toContain("linus");
   });
 
   it("logs the route pattern, not the path with ids in it", async () => {
@@ -67,7 +70,7 @@ describe("request logging", () => {
   });
 
   it("counts accepted, duplicate and rejected sessions per upload, without the user", async () => {
-    const { auth } = await createUserWithKey(db, "ada");
+    const { auth } = await createUserWithKey(db, "linus");
     const log = memoryLogger();
     const app = makeApp(db, { log });
     const first = session({ endsMinutesAgo: 60 });
@@ -80,7 +83,7 @@ describe("request logging", () => {
       expect.objectContaining({ accepted: 1, duplicates: 0, rejected: {} }),
       expect.objectContaining({ accepted: 0, duplicates: 1, rejected: { overlaps_existing: 1 } }),
     ]);
-    expect(JSON.stringify(log.lines)).not.toContain("ada");
+    expect(JSON.stringify(log.lines)).not.toContain("linus");
   });
 
   it("logs unhandled errors with the request id, and returns a generic 500", async () => {
