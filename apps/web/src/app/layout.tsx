@@ -19,7 +19,14 @@ const serif = Instrument_Serif({
   style: ["normal", "italic"],
   variable: "--font-instrument-serif",
 });
-const pixel = Geist_Pixel({ subsets: ["latin"], variable: "--font-geist-pixel" });
+// Next has no size metrics for Geist Pixel yet, so it can't build an adjusted fallback (and warns on
+// every compile). A plain monospace fallback is close enough for short scores.
+const pixel = Geist_Pixel({
+  subsets: ["latin"],
+  variable: "--font-geist-pixel",
+  adjustFontFallback: false,
+  fallback: ["ui-monospace", "monospace"],
+});
 const fontVariables = [sans, mono, display, serif, pixel].map((f) => f.variable).join(" ");
 
 export const metadata: Metadata = {
