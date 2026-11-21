@@ -86,7 +86,11 @@ Run a single test file: `pnpm --filter @forkyou/api exec vitest run test/ingest.
   call `api()` from `src/lib/api.client.ts`, which goes through `/api`.
 - Next 16: `cookies()`, `headers()`, `params` and `searchParams` are async, so `await` them.
 - Styling: Tailwind using the design tokens in `src/app/globals.css` (`bg-surface`, `text-muted`,
-  `bg-accent`, …). Don't hardcode colours; both light and dark must work.
+  `bg-accent`, `text-win`, `font-display`, `font-pixel`, `led-matrix`, …). Don't hardcode colours;
+  both light and dark must work. How and when to use each is in `docs/brand.md`.
+- Components: build the visual ones ourselves with those tokens. For behaviour that's hard to get
+  accessible (dialogs, menus, tabs, tooltips), use the matching unstyled Radix primitive, added in
+  the PR that first needs it. Don't add styled component libraries.
 - Reuse primitives from `src/components/ui.tsx` before creating new ones. Keep components accessible:
   labels on inputs, ARIA roles where Biome asks, keyboard reachable.
 

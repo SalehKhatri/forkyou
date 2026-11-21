@@ -4,6 +4,8 @@
 
 A rewrite for ForkYou 2.0.
 
+- New look: the ForkYou 2.0 icon (a flame with a clock in it) and Marketplace listing.
+
 - **New API key needed.** 1.x keys no longer work. The old key is removed without being sent
   anywhere, and you're asked for a new one.
 - The API key is stored in your OS keychain instead of plain extension storage.

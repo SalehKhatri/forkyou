@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Ember, celebrating">
+  <title>Ember, celebrating</title>
+  <!-- Sticker edge first, then the arms, then the body over the arms' inner ends. -->
+  <path d="M60 108C36 108 24 93 24 75C24 58 34 50 42 32C48 42 54 46 58 54C62 44 70 36 78 26C90 40 96 56 96 74C96 94 83 108 60 108Z" fill="#ffffff" stroke="#ffffff" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M36 93C21 89 13 76 15 60M84 93C99 89 107 76 105 60" stroke="#ffffff" stroke-width="17" fill="none" stroke-linecap="round"/>
+  <path d="M36 93C21 89 13 76 15 60M84 93C99 89 107 76 105 60" stroke="#0c1116" stroke-width="11" fill="none" stroke-linecap="round"/>
+  <path d="M36 93C21 89 13 76 15 60M84 93C99 89 107 76 105 60" stroke="#fbbf24" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+  <path d="M60 108C36 108 24 93 24 75C24 58 34 50 42 32C48 42 54 46 58 54C62 44 70 36 78 26C90 40 96 56 96 74C96 94 83 108 60 108Z" fill="#fbbf24" stroke="#0c1116" stroke-width="5.5" stroke-linejoin="round"/>
+  <path d="M60 99C49 99 43 92 43 83C43 74 50 69 54 62C57 68 59 71 61 73C64 68 67 64 69 60C74 67 77 75 77 83C77 93 70 99 60 99Z" fill="#22d3ee" stroke="#0c1116" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M37 76c0-8 3-13 7-18" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".85"/>
+  <path d="M46 86q5-6 10 0M64 86q5-6 10 0" stroke="#0c1116" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M53 90.5q7 9 14 0z" fill="#0c1116" stroke="#0c1116" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M18 33L19.8 38.2L25 40L19.8 41.8L18 47L16.2 41.8L11 40L16.2 38.2Z" fill="#22d3ee" stroke="#0c1116" stroke-width="1.5"/>
+  <path d="M103 38.4L104.4 42.6L108.6 44L104.4 45.4L103 49.6L101.6 45.4L97.4 44L101.6 42.6Z" fill="#fbbf24" stroke="#0c1116" stroke-width="1.5"/>
+</svg>

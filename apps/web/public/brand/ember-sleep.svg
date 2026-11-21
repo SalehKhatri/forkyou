@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Ember, idle">
+  <title>Ember, idle</title>
+  <g transform="translate(60 108) scale(.88) translate(-60 -108)">
+    <path d="M60 108C36 108 24 93 24 75C24 58 34 50 42 32C48 42 54 46 58 54C62 44 70 36 78 26C90 40 96 56 96 74C96 94 83 108 60 108Z" fill="#ffffff" stroke="#ffffff" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M60 108C36 108 24 93 24 75C24 58 34 50 42 32C48 42 54 46 58 54C62 44 70 36 78 26C90 40 96 56 96 74C96 94 83 108 60 108Z" fill="#fbbf24" stroke="#0c1116" stroke-width="5.5" stroke-linejoin="round"/>
+    <path d="M60 99C49 99 43 92 43 83C43 74 50 69 54 62C57 68 59 71 61 73C64 68 67 64 69 60C74 67 77 75 77 83C77 93 70 99 60 99Z" fill="#22d3ee" stroke="#0c1116" stroke-width="4.5" stroke-linejoin="round"/>
+    <path d="M37 76c0-8 3-13 7-18" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".85"/>
+    <path d="M46 86q5 4 10 0M64 86q5 4 10 0" stroke="#0c1116" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="60" cy="94" r="2.4" fill="#0c1116"/>
+  </g>
+  <path d="M84 30h8l-8 9h8M96 17h6l-6 7h6" stroke="#0e7490" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,13 +1,17 @@
 {
   "name": "forkyou",
   "displayName": "ForkYou",
-  "description": "Track the time you actually spend coding. See your stats and climb the leaderboard on forkyou.dev.",
+  "description": "Every minute in the editor counts. Track your coding time, keep your streak going and climb the weekly leaderboard on forkyou.dev.",
   "version": "2.0.0",
   "publisher": "ForkYou",
   "license": "MIT",
   "private": true,
   "pricing": "Free",
   "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0c1116",
+    "theme": "dark"
+  },
   "homepage": "https://forkyou.dev",
   "repository": {
     "type": "git",

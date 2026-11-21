@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>ForkYou</title>
+  <!-- Favicon: the logo simplified for 16-32 px. Thicker outline, a bigger clock, no hands. -->
+  <path d="M60 108C35 108 22 91 22 71C22 52 35 42 43 20C50 35 56 41 60 51C64 39 71 29 79 16C90 33 98 50 98 70C98 93 84 108 60 108Z" fill="#ffffff" stroke="#ffffff" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M60 108C35 108 22 91 22 71C22 52 35 42 43 20C50 35 56 41 60 51C64 39 71 29 79 16C90 33 98 50 98 70C98 93 84 108 60 108Z" fill="#22d3ee" stroke="#0c1116" stroke-width="8" stroke-linejoin="round"/>
+  <circle cx="60" cy="78" r="23" fill="#ffffff" stroke="#0c1116" stroke-width="7"/>
+  <circle cx="60" cy="78" r="12" fill="none" stroke="#fbbf24" stroke-width="8" stroke-linecap="round" stroke-dasharray="54 76" transform="rotate(-90 60 78)"/>
+</svg>
