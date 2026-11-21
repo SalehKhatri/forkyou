@@ -240,6 +240,22 @@ editor mix covers 7 days. The API caches the result for a minute and serves the 
 refreshes. Over HTTP, the first request after the API starts took 1.5 s, which includes opening
 database connections; after that, p50 5.2 ms and p95 8.3 ms.
 
+## 2026-11-21 · Staff review queue (`GET /v1/staff/review-queue`)
+
+The "no breaks" flag finds unbroken stretches with a window function over every session of the
+last 7 days; "sudden jump" reads the `daily_stats` rollup. Measured on the load-test data (warm,
+in Postgres):
+
+| Flag        | Time       | Rows                              |
+| ----------- | ---------- | --------------------------------- |
+| no breaks   | 470–610 ms | 260k sessions in the 7-day window |
+| sudden jump | 65–75 ms   | `daily_stats`, 4 weeks            |
+
+A full week at the load test's rate is about 560k sessions, so "no breaks" could approach a second.
+That's why the result is cached for a minute and served stale while it refreshes, like the overview.
+Over HTTP: first request 0.25 s (after the data had aged out of part of the window), then p50
+2.2 ms and p95 3.4 ms.
+
 ## Summary
 
 | Run                    | Requests | Errors | Worst p99 (endpoint)       | Postgres CPU avg / peak |

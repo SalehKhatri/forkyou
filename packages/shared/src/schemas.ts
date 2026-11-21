@@ -338,3 +338,35 @@ export const staffOverviewSchema = z.object({
   editors: z.array(z.object({ editor: z.string(), seconds: z.number().int() })),
 });
 export type StaffOverview = z.infer<typeof staffOverviewSchema>;
+
+/** Why an account is in the review queue (ADR 0009). A flag only asks for a human to look. */
+export const reviewFlagSchema = z.discriminatedUnion("kind", [
+  /** An unbroken stretch: no gap between sessions longer than the allowed break. */
+  z.object({
+    kind: z.literal("no_breaks"),
+    from: z.iso.datetime(),
+    to: z.iso.datetime(),
+    seconds: z.number().int(),
+  }),
+  /** This week's time is far above the weeks before it. */
+  z.object({
+    kind: z.literal("sudden_jump"),
+    weekSeconds: z.number().int(),
+    /** Their average week over the previous three. */
+    baselineWeekSeconds: z.number().int(),
+  }),
+]);
+export type ReviewFlag = z.infer<typeof reviewFlagSchema>;
+
+export const reviewQueueEntrySchema = z.object({
+  username: z.string(),
+  avatarUrl: z.string().nullable(),
+  /** Seconds over the last 7 UTC days, the queue's sort order. */
+  weekSeconds: z.number().int(),
+  flags: z.array(reviewFlagSchema),
+});
+export type ReviewQueueEntry = z.infer<typeof reviewQueueEntrySchema>;
+
+/** POST /v1/staff/users/:username/review-dismiss: "looked at it, it's fine". */
+export const reviewDismissSchema = z.object({ note: z.string().trim().max(500).optional() });
+export type ReviewDismiss = z.infer<typeof reviewDismissSchema>;

@@ -288,6 +288,8 @@ can't act on their own account or on staff ranked at or above them (`403 outrank
 | `PUT /v1/staff/users/:username/leaderboard-hidden`    | moderator   | `{ "reason": "…", "showReason"?: false }` → `204`. Hiding again replaces the reason.                                                                                                                                               |
 | `DELETE /v1/staff/users/:username/leaderboard-hidden` | moderator   | `204`, or `404` if the account isn't hidden                                                                                                                                                                                        |
 | `GET /v1/staff/overview`                              | moderator   | `{ generatedAt, users: { total, staff, hiddenFromLeaderboard }, activeUsers: { today, week, month }, onlineNow, days: [{ day, signups, activeUsers, seconds }], languages, editors }`. Cached for a minute.                        |
+| `GET /v1/staff/review-queue`                          | moderator   | `[{ username, avatarUrl, weekSeconds, flags }]`, most time this week first. Cached for a minute.                                                                                                                                   |
+| `POST /v1/staff/users/:username/review-dismiss`       | moderator   | `{ "note"?: "…" }` → `204`. Takes the account's current flags out of the queue.                                                                                                                                                    |
 | `GET /v1/staff/users/:username?range=7d&tz=<zone>`    | moderator   | The account for review: profile, `staffRole`, `leaderboard` (hidden, reason, visibility), `apiKeys` (active count, last use), `recent` seconds (24 h / 7 d / 30 d) and `stats` as in `/v1/me/stats`, but `projects` is always `[]` |
 | `POST /v1/staff/users/:username/revoke-keys`          | admin       | `{ "revoked": 2 }`. Revokes every active key; `0` changes and records nothing.                                                                                                                                                     |
 | `GET /v1/staff/audit?limit=50&before=<cursor>`        | admin       | `{ entries: [{ id, action, actor, target, details, createdAt }], next }`, newest first                                                                                                                                             |
@@ -298,6 +300,19 @@ can't act on their own account or on staff ranked at or above them (`403 outrank
 The overview uses UTC days (it reads the `daily_stats` rollup): `days` is the last 30, zero-filled;
 `languages` is the top 10 over 30 days; `editors` covers the last 7 days. `onlineNow` only counts
 people who allow being shown online.
+
+**Review queue.** Accounts with a pattern worth a human look over the last 7 days. Nothing happens
+to a flagged account; staff decide. Accounts already hidden from the leaderboard are left out. The
+thresholds are `REVIEW` in `apps/api/src/services/review.ts`.
+
+| `kind`        | Flagged when                                                                                        | Fields                               |
+| ------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `no_breaks`   | 8 hours or more with no gap between sessions longer than 10 minutes                                 | `from`, `to`, `seconds` (the span)   |
+| `sudden_jump` | 20 hours or more in the last 7 UTC days, and at least 5× their average week over the 3 weeks before | `weekSeconds`, `baselineWeekSeconds` |
+
+Dismissing records `review.dismiss` and hides the flags whose evidence began before it. A new
+unbroken stretch after the review brings the account back; a jump comes back only if it's still
+there once the 7-day window starts after the review. Hiding an account also takes it off the queue.
 
 Lookup never returns project names (they're private to their owner), API keys or token hashes.
 Any staff member can look up any account, since looking isn't acting. Revoked keys stop working

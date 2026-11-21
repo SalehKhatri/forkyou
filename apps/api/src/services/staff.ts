@@ -329,3 +329,29 @@ export async function revokeUserKeys(
     return { ok: true, revoked: revoked.length };
   });
 }
+
+/**
+ * Marks a flagged account as reviewed and fine. Its current flags leave the review queue; new
+ * evidence after this brings it back (see `getReviewQueue`). Recorded as `review.dismiss`.
+ */
+export async function dismissReview(
+  db: Db,
+  env: Env,
+  actor: Actor,
+  username: string,
+  note: string | undefined,
+  now: Date,
+): Promise<Outcome> {
+  return db.transaction(async (tx) => {
+    const locked = await lockTarget(tx, env, actor, username);
+    if (!locked.ok) return locked;
+    await tx.insert(adminActions).values({
+      createdAt: now,
+      actorId: actor.id,
+      targetId: locked.target.id,
+      action: "review.dismiss",
+      details: note ? { note } : {},
+    });
+    return { ok: true };
+  });
+}
