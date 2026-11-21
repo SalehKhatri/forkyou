@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Ember, locked in">
+  <title>Ember, locked in</title>
+  <path d="M60 108C36 108 24 93 24 75C24 58 34 50 42 32C48 42 54 46 58 54C62 44 70 36 78 26C90 40 96 56 96 74C96 94 83 108 60 108Z" fill="#ffffff" stroke="#ffffff" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M60 108C36 108 24 93 24 75C24 58 34 50 42 32C48 42 54 46 58 54C62 44 70 36 78 26C90 40 96 56 96 74C96 94 83 108 60 108Z" fill="#fbbf24" stroke="#0c1116" stroke-width="5.5" stroke-linejoin="round"/>
+  <path d="M60 99C49 99 43 92 43 83C43 74 50 69 54 62C57 68 59 71 61 73C64 68 67 64 69 60C74 67 77 75 77 83C77 93 70 99 60 99Z" fill="#22d3ee" stroke="#0c1116" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M37 76c0-8 3-13 7-18" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".85"/>
+  <path d="M45 79l9 3M75 79l-9 3" stroke="#0c1116" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="51" cy="86" r="3.2" fill="#0c1116"/>
+  <circle cx="69" cy="86" r="3.2" fill="#0c1116"/>
+  <path d="M56 93.5h8" stroke="#0c1116" stroke-width="3" stroke-linecap="round"/>
+</svg>

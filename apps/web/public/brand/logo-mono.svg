@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="currentColor" role="img" aria-label="ForkYou">
+  <title>ForkYou</title>
+  <!-- One colour (currentColor): the clock is cut out of the flame -->
+  <defs>
+    <mask id="clock-cutout">
+      <rect width="120" height="120" fill="#ffffff"/>
+      <circle cx="60" cy="80" r="20" fill="#000000"/>
+    </mask>
+  </defs>
+  <path d="M60 108C35 108 22 91 22 71C22 52 35 42 43 20C50 35 56 41 60 51C64 39 71 29 79 16C90 33 98 50 98 70C98 93 84 108 60 108Z" mask="url(#clock-cutout)"/>
+  <circle cx="60" cy="80" r="13" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="59 82" transform="rotate(-90 60 80)"/>
+  <path d="M60 80V71M60 80h7" stroke="currentColor" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+</svg>

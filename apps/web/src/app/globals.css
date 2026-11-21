@@ -1,31 +1,50 @@
 @import "tailwindcss";
 
-/* Design tokens. Light by default; dark follows the OS. Components only use these names. */
+/*
+ * Design tokens (docs/brand.md). Light by default; dark follows the OS. Components only use these
+ * names, through the Tailwind theme below, never raw colours.
+ *
+ * accent = you and your time (cyan); win = streaks, bests, medals (amber); led = scoreboard panels.
+ */
 :root {
-  --bg: #fafaf9;
+  --bg: #f6f8f9;
   --surface: #ffffff;
-  --surface-2: #f4f4f2;
-  --border: #e4e4e0;
-  --fg: #18181b;
-  --muted: #6b6b73;
-  --accent: #059669;
+  --surface-2: #eef3f5;
+  --border: #e1e6ea;
+  --fg: #0c1116;
+  --muted: #56616b;
+  --accent: #0e7490;
   --accent-fg: #ffffff;
-  --accent-soft: #d1fae5;
+  --accent-soft: #e6f7fa;
+  --win: #fbbf24;
+  --win-fg: #0c1116;
+  --win-text: #b45309;
+  --win-soft: #fef3c7;
   --danger: #dc2626;
+  --led: #070a0d;
+  --led-fg: #e8eef2;
+  --led-accent: #22d3ee;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b0c0e;
-    --surface: #121418;
-    --surface-2: #181b20;
-    --border: #23262d;
-    --fg: #ececee;
-    --muted: #8b8f98;
-    --accent: #34d399;
-    --accent-fg: #052e1f;
-    --accent-soft: #0f2a21;
+    --bg: #0a0e12;
+    --surface: #11171d;
+    --surface-2: #151d24;
+    --border: #22303a;
+    --fg: #e8eef2;
+    --muted: #92a1ad;
+    --accent: #22d3ee;
+    --accent-fg: #0c1116;
+    --accent-soft: #0f2a33;
+    --win: #fbbf24;
+    --win-fg: #0c1116;
+    --win-text: #fbbf24;
+    --win-soft: #2a1a06;
     --danger: #f87171;
+    --led: #070a0d;
+    --led-fg: #e8eef2;
+    --led-accent: #22d3ee;
   }
 }
 
@@ -39,9 +58,29 @@
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
+  --color-win: var(--win);
+  --color-win-fg: var(--win-fg);
+  --color-win-text: var(--win-text);
+  --color-win-soft: var(--win-soft);
   --color-danger: var(--danger);
+  --color-led: var(--led);
+  --color-led-fg: var(--led-fg);
+  --color-led-accent: var(--led-accent);
+
+  /* Geist for everything you read; display for headlines; serif for one accent word; pixel for scores. */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-bricolage), var(--font-geist-sans), sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-pixel: var(--font-geist-pixel), var(--font-geist-mono), monospace;
+
+  --radius-card: 1.5rem;
+  --radius-panel: 1.75rem;
+
+  --shadow-card:
+    inset 0 1px 0 rgb(255 255 255 / 0.6), 0 1px 2px rgb(12 17 22 / 0.05),
+    0 16px 32px -20px rgb(12 17 22 / 0.2);
+  --shadow-panel: 0 30px 60px -30px rgb(7 10 13 / 0.6);
 }
 
 html {
@@ -52,6 +91,30 @@ body {
   background: var(--bg);
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
+}
+
+/* The scoreboard's dot-matrix background, for LED panels. */
+@utility led-matrix {
+  background-color: var(--led);
+  background-image: radial-gradient(rgb(148 163 184 / 0.1) 1px, transparent 1.4px);
+  background-size: 7px 7px;
+  color: var(--led-fg);
+}
+
+/* Glowing figures on LED panels: cyan for you and time, amber for wins. */
+@utility glow-accent {
+  color: var(--led-accent);
+  text-shadow: 0 0 14px rgb(34 211 238 / 0.5);
+}
+
+@utility glow-win {
+  color: var(--win);
+  text-shadow: 0 0 14px rgb(251 191 36 / 0.45);
+}
+
+/* Die-cut stickers (logo, flame, Ember, badges) sit on the page with a soft shadow. */
+@utility sticker {
+  filter: drop-shadow(0 2px 2px rgb(12 17 22 / 0.18)) drop-shadow(0 12px 16px rgb(12 17 22 / 0.16));
 }
 
 @keyframes pulse-dot {

@@ -1,3 +1,5 @@
+<img src="apps/web/public/brand/logo.svg" alt="" width="88" align="right">
+
 # ForkYou
 
 Track the time you actually spend coding, straight from your editor. See where it goes, climb the
