@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getMe } from "@/lib/api.server";
+import type { Theme } from "@/lib/theme";
+import { ThemeToggle } from "./theme-toggle";
 import { Avatar, ButtonLink } from "./ui";
 
-export async function SiteHeader() {
+export async function SiteHeader({ theme }: { theme: Theme }) {
   const me = await getMe();
   return (
     <header className="border-b border-border">
@@ -20,7 +22,8 @@ export async function SiteHeader() {
             </Link>
           )}
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle initial={theme} />
           {me ? (
             <Link
               href="/settings"

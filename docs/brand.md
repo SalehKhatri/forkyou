@@ -96,6 +96,15 @@ Plain and calm, with a wink when you win. Short sentences, real numbers, no hype
 - Never guilt people for a broken streak or a slow week, and never compare anyone to a named person
   except on the leaderboard itself.
 
+## Light and dark
+
+**Light is the default** for everyone, whatever their OS is set to. Dark is a choice: the toggle in
+the header switches it and remembers it in a first-party `fy_theme` cookie, so the server renders the
+right theme on the first paint with no flash. The new theme spreads out in a circle from the toggle
+(View Transitions API), and the sun-and-moon icon morphs with it. With reduced motion, or in a browser
+without view transitions, the switch is instant. Every token has a light and a dark value; never
+style one theme only.
+
 ## Motion
 
 Motion is feedback, not decoration: a number that ticks up, a ring that fills, a sticker that pops

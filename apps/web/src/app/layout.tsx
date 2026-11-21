@@ -6,7 +6,9 @@ import {
   Geist_Pixel,
   Instrument_Serif,
 } from "next/font/google";
+import { cookies } from "next/headers";
 import { SiteHeader } from "@/components/site-header";
+import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
 // Self-hosted by next/font at build time; no request to Google from the browser. Roles: docs/brand.md.
@@ -35,11 +37,13 @@ export const metadata: Metadata = {
     "Every minute in the editor counts. Coding time, streaks and a weekly leaderboard, from your editor.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Rendered on the server from the cookie, so the first paint is already in the right theme.
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <html lang="en" className={fontVariables}>
+    <html lang="en" className={fontVariables} data-theme={theme}>
       <body className="min-h-dvh font-sans">
-        <SiteHeader />
+        <SiteHeader theme={theme} />
         <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
       </body>
     </html>
